@@ -53,7 +53,7 @@ function FormInput({ icon, placeholder, secure, optional }: { icon: string, plac
     <View style={styles.inputBox}>
       <Icon name={icon} size={18} color={RGF.muted} />
       <TextInput 
-        style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, height: '100%' }}
+        style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }}
         placeholder={placeholder}
         placeholderTextColor={RGF.muted}
         secureTextEntry={secure}
@@ -110,7 +110,7 @@ export default function ScreenSignUp() {
               </View>
             </View>
             <FormInput icon="mail" placeholder="Email address" />
-            <FormInput icon="book" placeholder="Phone number" />
+            <FormInput icon="phone" placeholder="Phone number" />
             <FormInput icon="link" placeholder="ORCID iD" optional />
             <FormInput icon="lock" placeholder="Password" secure />
             <FormInput icon="check" placeholder="Confirm password" secure />
@@ -154,10 +154,10 @@ const styles = StyleSheet.create({
   },
   inputBox: {
     backgroundColor: '#fff', borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16,
-    borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 12, height: 52
+    borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52
   },
   inputText: {
-    flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, height: '100%'
+    flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0
   },
   primaryBtn: {
     backgroundColor: RGF.ink, borderRadius: 22, paddingVertical: 16, alignItems: 'center', marginTop: 10

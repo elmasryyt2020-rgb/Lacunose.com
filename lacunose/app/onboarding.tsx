@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing,
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { RGF } from '../constants/theme';
 import { Icon, CategoryPill, ScoreDial } from '../components/Shared';
 
@@ -191,7 +192,11 @@ function ScreenOnboardC({ onNext }: { onNext: () => void }) {
         <View style={{ marginTop: 12 }}>
           <BlurredStack />
         </View>
-        <BlurView intensity={70} tint="light" style={{ position: 'absolute', top: 0, left: -20, right: -20, bottom: -20 }} />
+        <LinearGradient 
+          colors={['rgba(241,238,232,0)', 'rgba(241,238,232,0.7)', 'rgba(241,238,232,1)']} 
+          locations={[0, 0.4, 0.85]}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+        />
       </View>
     </OnboardShell>
   );
@@ -277,7 +282,12 @@ function ScreenOnboardReveal() {
 
       <View style={{ flex: 1, position: 'relative', marginTop: 12 }}>
         <BlurredStack />
-        <BlurView intensity={70} tint="light" style={{ position: 'absolute', top: 0, bottom: 0, left: -20, right: -20 }} />
+        
+        <LinearGradient 
+          colors={['rgba(241,238,232,0)', 'rgba(241,238,232,0.7)', 'rgba(241,238,232,1)']} 
+          locations={[0, 0.35, 0.7]}
+          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} 
+        />
 
         {/* Sign-up gate overlay */}
         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', justifyContent: 'flex-end', paddingBottom: 8 }}>

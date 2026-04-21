@@ -36,15 +36,17 @@ export default function ScreenSignIn() {
         <View style={styles.inputBox}>
           <Icon name="mail" size={18} color={RGF.muted} />
           <TextInput 
-            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink }}
-            defaultValue="seif@researcher.edu"
+            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }}
+            placeholder="Email address"
+            placeholderTextColor={RGF.muted}
           />
         </View>
         <View style={styles.inputBox}>
           <Icon name="lock" size={18} color={RGF.muted} />
           <TextInput 
-            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, letterSpacing: 3 }}
-            defaultValue="••••••••"
+            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }}
+            placeholder="Password"
+            placeholderTextColor={RGF.muted}
             secureTextEntry
           />
           <Icon name="eye" size={18} color={RGF.muted} />
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
     fontFamily: RGF.sans, fontSize: 15, color: RGF.inkSoft, lineHeight: 22, marginBottom: 32,
   },
   inputBox: {
-    backgroundColor: '#fff', borderRadius: 18, paddingVertical: 14, paddingHorizontal: 18,
-    borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#fff', borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16,
+    borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52
   }
 });
