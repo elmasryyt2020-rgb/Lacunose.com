@@ -31,8 +31,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (process.env.EXPO_PUBLIC_USE_MOCKS === 'true') {
-      setSession({ access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: Date.now() + 3600, token_type: 'bearer', user: { id: 'mock', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } });
-      setUser({ id: 'mock', email: 'mock@example.com', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' });
+      // Supabase Session.expires_at is seconds-since-epoch, NOT milliseconds.
+      const nowSec = Math.floor(Date.now() / 1000);
+      const nowIso = new Date().toISOString();
+      setSession({
+        access_token: 'mock', refresh_token: 'mock',
+        expires_in: 3600, expires_at: nowSec + 3600,
+        token_type: 'bearer',
+        user: { id: 'mock-user-0000', app_metadata: {}, user_metadata: { full_name: 'Mock User' }, aud: 'authenticated', created_at: nowIso },
+      });
+      setUser({
+        id: 'mock-user-0000', email: 'mock@example.com',
+        app_metadata: {}, user_metadata: { full_name: 'Mock User' },
+        aud: 'authenticated', created_at: nowIso,
+      });
       setLoading(false);
       return;
     }

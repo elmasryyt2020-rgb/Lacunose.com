@@ -8,3 +8,8 @@ import { bullConnection } from '../lib/redis.js';
 
 export const ingestQueue = new Queue<IngestJob>(QUEUE_NAMES.ingest, bullConnection());
 export const supportQueue = new Queue<SupportJob>(QUEUE_NAMES.support, bullConnection());
+
+/** Close every queue opened by the edge-fn. Call from the SIGTERM handler. */
+export async function closeAllQueues(): Promise<void> {
+  await Promise.allSettled([ingestQueue.close(), supportQueue.close()]);
+}

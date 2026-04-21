@@ -31,29 +31,35 @@ const BYTES_PER_HASH = 32;
  */
 export function hashEmbed(text: string): number[] {
   const tokens = tokenize(text);
-  const ngrams = buildNgrams(tokens, [1, 2, 3]);
+  // Deduplicate ngrams so "the the the" doesn't dominate.
+  const ngrams = Array.from(new Set(buildNgrams(tokens, [1, 2, 3])));
+  // Sorted so embed("foo bar") === embed("bar foo") — order invariance is
+  // required for clustering to work even at lexical-overlap fidelity.
+  ngrams.sort();
 
   const accum = new Float64Array(DIM);
 
-  for (let s = 0; s < N_HASHES; s++) {
-    const salt = `lacunose-hashEmbed-salt-${s}`;
-    // Hash ALL ngrams together under this salt; XOR-fold via hash concat
-    const h = createHash('sha256');
-    h.update(salt);
-    for (const g of ngrams) {
-      h.update('\x1f');
-      h.update(g);
-    }
-    const digest = h.digest();
-    for (let b = 0; b < BYTES_PER_HASH; b++) {
-      // Map byte 0-255 to roughly [-1, 1]; avoid bias by subtracting 127.5
-      const byte = digest[b] ?? 0;
-      const val = (byte - 127.5) / 127.5;
-      accum[s * BYTES_PER_HASH + b] = val;
+  // Bag-of-ngrams: each ngram independently contributes to the accumulator
+  // under all 24 salts. Additive (order-free) + idf-ish log damping so a
+  // single dominant ngram doesn't obliterate the rest.
+  const weight = 1 / Math.log2(2 + ngrams.length);
+  for (const g of ngrams) {
+    for (let s = 0; s < N_HASHES; s++) {
+      const digest = createHash('sha256')
+        .update(`lacunose-hashEmbed-salt-${s}`)
+        .update('\x1f')
+        .update(g)
+        .digest();
+      const base = s * BYTES_PER_HASH;
+      for (let b = 0; b < BYTES_PER_HASH; b++) {
+        const byte = digest[b] ?? 0;
+        // Map byte to roughly [-1, 1] and scale by per-ngram weight.
+        accum[base + b] = (accum[base + b] ?? 0) + ((byte - 127.5) / 127.5) * weight;
+      }
     }
   }
 
-  // L2-normalize so cosine similarity behaves sensibly
+  // L2-normalize so cosine similarity behaves sensibly.
   let norm = 0;
   for (let i = 0; i < DIM; i++) {
     const v = accum[i] ?? 0;

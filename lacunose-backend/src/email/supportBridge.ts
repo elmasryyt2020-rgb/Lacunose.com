@@ -126,6 +126,24 @@ async function resolveThread(inbound: InboundEmail): Promise<{
   return { thread_id: thread.id as string, user_id: thread.user_id as string };
 }
 
+/** Chunk array into sub-arrays of at most `size` items. */
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+async function pruneDeadTokens(deadTokens: string[]): Promise<void> {
+  if (deadTokens.length === 0) return;
+  const sb = supabaseAdmin();
+  const { error } = await sb.from('push_tokens').delete().in('token', deadTokens);
+  if (error) {
+    logger.warn('push_token_prune_failed', { err: error.message });
+    return;
+  }
+  logger.info('push_tokens_pruned', { count: deadTokens.length });
+}
+
 async function sendExpoPush(userId: string, title: string, body: string): Promise<void> {
   if (!env.EXPO_ACCESS_TOKEN) return;
   const sb = supabaseAdmin();
@@ -143,22 +161,38 @@ async function sendExpoPush(userId: string, title: string, body: string): Promis
     data: { kind: 'support_reply' },
   }));
 
-  try {
-    const res = await undiciFetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${env.EXPO_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify(messages),
-    });
-    if (!res.ok) {
-      logger.warn('expo_push_non_2xx', { status: res.status });
+  // Expo's push endpoint caps at 100 messages per request.
+  const dead: string[] = [];
+  for (const batch of chunk(messages, 100)) {
+    try {
+      const res = await undiciFetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${env.EXPO_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify(batch),
+      });
+      if (!res.ok) {
+        logger.warn('expo_push_non_2xx', { status: res.status });
+        continue;
+      }
+      const payload = (await res.json()) as { data?: Array<{ status?: string; details?: { error?: string } }> };
+      const tickets = payload.data ?? [];
+      for (let i = 0; i < tickets.length; i++) {
+        const ticket = tickets[i];
+        if (!ticket) continue;
+        if (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
+          const msg = batch[i];
+          if (msg?.to) dead.push(msg.to);
+        }
+      }
+    } catch (err) {
+      logger.warn('expo_push_failed', { err: (err as Error).message });
     }
-  } catch (err) {
-    logger.warn('expo_push_failed', { err: (err as Error).message });
   }
+  if (dead.length > 0) await pruneDeadTokens(dead);
 }
 
 async function onInboundMessage(inbound: InboundEmail): Promise<void> {
@@ -182,11 +216,11 @@ async function onInboundMessage(inbound: InboundEmail): Promise<void> {
     return;
   }
 
+  // stripReplyQuotes falls back to the raw text when stripping would yield
+  // an empty body, so we don't silently drop staff replies that don't match
+  // our quote heuristics. Final safety net: if truly empty, skip.
   const stripped = stripReplyQuotes(inbound.textPlain);
-  if (!stripped) {
-    logger.warn('support_inbound_empty_after_strip', { messageId: inbound.messageId });
-    return;
-  }
+  if (!stripped) return;
 
   const { error: insErr } = await sb.from('support_messages').insert({
     thread_id: routed.thread_id,
@@ -222,16 +256,33 @@ async function onInboundMessage(inbound: InboundEmail): Promise<void> {
   });
 }
 
+const LAST_UID_KEY = 'support:lastUid';
+
 export async function handleInboundPoll(): Promise<void> {
   const client = redis();
-  const lastPollRaw = await client.get(LAST_POLL_KEY);
+
+  // Prefer UID-based cursor so we only fetch mail that arrived since the
+  // previous poll. On cold start (no key) we fall back to SINCE <yesterday>
+  // to seed the cursor, then UID mode takes over.
+  const lastUidRaw = await client.get(LAST_UID_KEY);
+  const sinceUid = lastUidRaw ? Number(lastUidRaw) : 0;
+
   const now = Date.now();
   const fallback = now - MAX_POLL_LOOKBACK_MS;
+  const lastPollRaw = await client.get(LAST_POLL_KEY);
   let sinceMs = lastPollRaw ? Number(lastPollRaw) : fallback;
   if (!Number.isFinite(sinceMs) || sinceMs < fallback) sinceMs = fallback;
-  const since = new Date(sinceMs);
+  const sinceDate = new Date(sinceMs);
 
-  await pollInbox(since, onInboundMessage);
+  const opts: { sinceUid?: number; sinceDate: Date } = { sinceDate };
+  if (Number.isFinite(sinceUid) && sinceUid > 0) opts.sinceUid = sinceUid;
 
+  const { lastUid } = await pollInbox(opts, onInboundMessage);
+
+  // Persist AFTER a successful poll. If the poll threw we'd catch that
+  // upstream and re-use the existing cursor on the next tick.
+  if (lastUid > sinceUid) {
+    await client.set(LAST_UID_KEY, String(lastUid));
+  }
   await client.set(LAST_POLL_KEY, String(now));
 }

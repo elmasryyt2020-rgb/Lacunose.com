@@ -49,7 +49,10 @@ function parseEntry(entryXml: string): RawPaper | null {
   const rawId = firstTag(entryXml, 'id');
   if (!rawId) return null;
   const idUrl = rawId.trim();
-  const arxiv_id = idUrl.includes('/abs/') ? idUrl.split('/abs/')[1]?.trim() ?? null : null;
+  // Strip the version suffix (…v2) — otherwise dedupe against other sources
+  // (OpenAlex, S2) that report the canonical non-versioned ID fails.
+  const rawArxivId = idUrl.includes('/abs/') ? idUrl.split('/abs/')[1]?.trim() : undefined;
+  const arxiv_id = rawArxivId ? rawArxivId.replace(/v\d+$/i, '') : null;
   if (!arxiv_id) return null;
 
   const title = collapseWs(decodeXml(firstTag(entryXml, 'title') ?? ''));

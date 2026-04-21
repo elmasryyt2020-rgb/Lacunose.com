@@ -2,12 +2,18 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '../../components/Shared';
-import { RGF } from '../../constants/theme';
+import { useTheme } from '../../constants/theme';
 
 function FloatingNav({ state, descriptors, navigation }: any) {
+  // Theme-aware — the previous static RGF import froze the bar to light mode
+  // even after the user toggled dark from the profile screen.
+  const { RGF } = useTheme();
   return (
     <View style={styles.floatingNavContainer}>
-      <View style={styles.floatingNav}>
+      <View style={[
+        styles.floatingNav,
+        { backgroundColor: RGF.surface, borderColor: RGF.hair },
+      ]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -38,10 +44,10 @@ function FloatingNav({ state, descriptors, navigation }: any) {
               onPress={onPress}
               style={[
                 styles.navItem,
-                isFocused && styles.navItemFocused
+                isFocused && { backgroundColor: RGF.ink },
               ]}
             >
-              <Icon name={iconName} size={22} color={isFocused ? '#fff' : RGF.ink} stroke={1.7} />
+              <Icon name={iconName} size={22} color={isFocused ? RGF.bg : RGF.ink} stroke={1.7} />
             </TouchableOpacity>
           );
         })}
@@ -51,12 +57,13 @@ function FloatingNav({ state, descriptors, navigation }: any) {
 }
 
 export default function TabLayout() {
+  const { RGF } = useTheme();
   return (
     <Tabs
       tabBar={props => <FloatingNav {...props} />}
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: RGF.bg }
+        sceneStyle: { backgroundColor: RGF.bg },
       }}
     >
       <Tabs.Screen name="home" />
@@ -78,7 +85,6 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   floatingNav: {
-    backgroundColor: '#fff',
     borderRadius: 40,
     padding: 6,
     flexDirection: 'row',
@@ -88,7 +94,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 30,
     borderWidth: 1,
-    borderColor: RGF.hair,
   },
   navItem: {
     width: 52,
@@ -98,7 +103,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navItemFocused: {
-    backgroundColor: RGF.ink,
-  }
 });

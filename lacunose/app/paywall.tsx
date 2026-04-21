@@ -151,6 +151,19 @@ export default function ScreenPaywall() {
             <Icon name="arrow" size={18} color={RGF.ink} />
           </View>
         </TouchableOpacity>
+
+        {/* App Store / Play review hard-requires these disclosures + links. */}
+        <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted, textAlign: 'center', lineHeight: 16, marginTop: 18, paddingHorizontal: 10 }}>
+          Subscription auto-renews at the price shown above. You can cancel anytime in your device's subscription settings.
+        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 8 }}>
+          <TouchableOpacity onPress={() => router.push('/terms')}>
+            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink, textDecorationLine: 'underline' }}>Terms</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/privacy')}>
+            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink, textDecorationLine: 'underline' }}>Privacy</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );

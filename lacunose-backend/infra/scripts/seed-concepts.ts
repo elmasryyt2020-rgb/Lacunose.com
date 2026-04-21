@@ -44,7 +44,44 @@ interface OAConcept {
   works_count?: number;
 }
 
+/**
+ * Fetch OpenAlex concepts / topics. OpenAlex migrated to `/topics` in late
+ * 2024 but `/concepts` still responds for backward compatibility. We try
+ * `/topics` first (level 0 = domain, level 1 = field), fall back to
+ * `/concepts` if the endpoint ever goes away or returns non-2xx.
+ */
 async function* fetchConcepts(level: number): AsyncGenerator<OAConcept> {
+  // Try /topics first — topics don't use `level` in the same way: there's
+  // `domains` (19) and `fields` (285). Level 0 → domains, level 1 → fields.
+  const topicsPath = level === 0 ? 'domains' : level === 1 ? 'fields' : null;
+  if (topicsPath) {
+    let cursor = '*';
+    while (cursor) {
+      const url = new URL(`https://api.openalex.org/${topicsPath}`);
+      url.searchParams.set('per-page', '200');
+      url.searchParams.set('cursor', cursor);
+      url.searchParams.set('mailto', env.POLITE_EMAIL);
+      const res = await fetch(url.toString());
+      if (res.ok) {
+        const body = (await res.json()) as { results: any[]; meta: { next_cursor?: string } };
+        for (const t of body.results) {
+          yield {
+            id: t.id,
+            display_name: t.display_name,
+            level,
+            ancestors: (t.domain ? [{ id: t.domain.id }] : undefined),
+            works_count: t.works_count ?? 0,
+          };
+        }
+        cursor = body.meta.next_cursor ?? '';
+        continue;
+      }
+      // Non-2xx from /topics/{domains,fields} — fall through to /concepts.
+      break;
+    }
+  }
+
+  // Legacy / fallback: /concepts with level filter.
   let cursor = '*';
   while (cursor) {
     const url = new URL('https://api.openalex.org/concepts');
@@ -54,7 +91,7 @@ async function* fetchConcepts(level: number): AsyncGenerator<OAConcept> {
     url.searchParams.set('mailto', env.POLITE_EMAIL);
 
     const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`OpenAlex ${res.status}`);
+    if (!res.ok) throw new Error(`OpenAlex concepts ${res.status}`);
     const body = (await res.json()) as { results: OAConcept[]; meta: { next_cursor?: string } };
 
     for (const c of body.results) yield c;

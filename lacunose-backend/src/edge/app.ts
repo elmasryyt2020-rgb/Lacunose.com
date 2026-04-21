@@ -22,6 +22,8 @@ import webhookRoutes from './routes/webhooks.js';
 import accountRoutes from './routes/account.js';
 import pushRoutes from './routes/push.js';
 import healthRoutes from './routes/health.js';
+import { verifyModelsOnBoot } from '../llm/verifyModels.js';
+import { closeAllQueues } from './queues.js';
 
 const logger = log.child('edge');
 
@@ -106,14 +108,27 @@ async function main(): Promise<void> {
     reply.code(404).send({ error: 'not_found', path: req.url });
   });
 
-  // Graceful shutdown.
+  // Graceful shutdown — stop accepting requests, drain BullMQ queue
+  // connections, then exit. Without closing the queues, SIGTERM leaves
+  // Redis sockets open and PM2 eventually SIGKILLs us.
+  let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     logger.info('shutdown_start', { signal });
     try {
       await app.close();
     } catch (err) {
       logger.error('shutdown_close_failed', { err: (err as Error).message });
     }
+    try {
+      await closeAllQueues();
+    } catch (err) {
+      logger.error('shutdown_queues_failed', { err: (err as Error).message });
+    }
+    try {
+      redis().disconnect();
+    } catch {}
     process.exit(0);
   };
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
@@ -122,6 +137,10 @@ async function main(): Promise<void> {
   try {
     await app.listen({ port: env.EDGE_FN_PORT, host: env.EDGE_FN_HOST });
     logger.info('edge_fn_listening', { port: env.EDGE_FN_PORT, host: env.EDGE_FN_HOST });
+    // Fire-and-forget model verification so first-analysis failures are
+    // avoided when the configured Opus/Haiku IDs drift in the Anthropic
+    // catalog. Logs a warning; never crashes the process.
+    void verifyModelsOnBoot();
   } catch (err) {
     logger.error('edge_fn_listen_failed', { err: (err as Error).message });
     process.exit(1);

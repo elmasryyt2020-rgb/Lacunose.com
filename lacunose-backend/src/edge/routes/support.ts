@@ -48,14 +48,30 @@ async function getOrCreateActiveThread(userId: string): Promise<SupportThread> {
   if (e2) throw new Error(`thread_lookup_failed: ${e2.message}`);
   if (latest) return latest as SupportThread;
 
-  // None at all — create a new one.
+  // None at all — create a new one. The partial unique index
+  // `support_threads_one_open_per_user` means two parallel requests race
+  // safely: exactly one insert wins; the other gets 23505, at which point
+  // we re-read the now-existing open thread.
   const { data: created, error: e3 } = await sb
     .from('support_threads')
     .insert({ user_id: userId })
     .select('*')
     .single();
-  if (e3 || !created) throw new Error(`thread_create_failed: ${e3?.message ?? 'no_row'}`);
-  return created as SupportThread;
+  if (created) return created as SupportThread;
+
+  if (e3?.code === '23505') {
+    const { data: afterRace } = await sb
+      .from('support_threads')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'open')
+      .order('last_message_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (afterRace) return afterRace as SupportThread;
+  }
+
+  throw new Error(`thread_create_failed: ${e3?.message ?? 'no_row'}`);
 }
 
 const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {

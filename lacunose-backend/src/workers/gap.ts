@@ -46,6 +46,14 @@ worker.on('failed', (job, err) => {
   logger.error('job-failed', { id: job?.id, err: err.message });
 });
 
-process.on('SIGTERM', () => {
-  void worker.close().then(() => process.exit(0));
-});
+async function shutdown(signal: string): Promise<void> {
+  logger.info('shutdown', { signal });
+  try {
+    await worker.close();
+  } catch (err) {
+    logger.error('worker_close_failed', { err: (err as Error).message });
+  }
+  process.exit(0);
+}
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));

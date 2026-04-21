@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
 import { useRouter } from 'expo-router';
 import { useAnalyses } from '../../hooks/useAnalyses';
+import { useSavedGaps } from '../../hooks/useSavedGaps';
 import { FRAMES } from '../../lib/fields/frames';
 
 export default function ScreenLibrary() {
@@ -13,15 +14,48 @@ export default function ScreenLibrary() {
   const { RGF } = useTheme();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isFilterActive, setIsFilterActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: analyses, isLoading } = useAnalyses();
+  const { data: savedGaps } = useSavedGaps();
   const [activeFilter, setActiveFilter] = useState('All');
 
+  // Build the filter chip list dynamically from the field frames the user
+  // has actually analyzed in, plus two fixed "All" / "Saved" affordances.
+  const availableFieldChips = useMemo(() => {
+    const seen = new Set<string>();
+    for (const a of analyses ?? []) {
+      const f = (a as any)?.field as string | undefined;
+      if (f && FRAMES[f]) seen.add(f);
+    }
+    // Stable order: iterate FRAMES keys so "Medicine" always before "Psychology"
+    return Object.keys(FRAMES).filter((id) => seen.has(id));
+  }, [analyses]);
+
+  // "Saved" is a proper lookup now: an analysis counts as "Saved" iff any of
+  // its gap_items.id appears in the user's saved_items table.
+  const savedGapIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const g of savedGaps ?? []) s.add((g as any).id);
+    return s;
+  }, [savedGaps]);
+
   const filteredItems = (analyses || []).filter((a: any) => {
+    // Text search — topic substring, case-insensitive.
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      if (!String(a.topic ?? '').toLowerCase().includes(q)) return false;
+    }
     if (activeFilter === 'All') return true;
-    if (activeFilter === 'Saved') return a.gap_items?.some((g: any) => g.saved); // mock logic for saved
-    if (activeFilter === 'Archived') return false; // mockup
-    return FRAMES[a.field]?.label === activeFilter || a.field === activeFilter;
+    if (activeFilter === 'Saved') {
+      // gap_items in useAnalyses is the count aggregate shape, not rows —
+      // so compare against the real saved-gaps set.
+      const ids = Array.isArray(a.gap_items) && a.gap_items[0]?.id
+        ? a.gap_items.map((g: any) => g.id)
+        : [];
+      return ids.some((id: string) => savedGapIds.has(id));
+    }
+    return a.field === activeFilter;
   });
 
   return (
@@ -31,7 +65,15 @@ export default function ScreenLibrary() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <View style={{ flex: 1, backgroundColor: RGF.surface, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: RGF.ink, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Icon name="search" size={16} color={RGF.ink} />
-              <TextInput autoFocus placeholder="Search past analyses..." placeholderTextColor={RGF.muted} style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }} />
+              <TextInput
+                autoFocus
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search past analyses..."
+                placeholderTextColor={RGF.muted}
+                returnKeyType="search"
+                style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }}
+              />
             </View>
             <TouchableOpacity onPress={() => setIsSearchActive(false)}>
               <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.ink }}>Cancel</Text>
@@ -57,18 +99,26 @@ export default function ScreenLibrary() {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 22, height: 36, marginBottom: 24 }} style={{ marginHorizontal: -22, paddingHorizontal: 22 }}>
-          {['All', 'Saved', 'Medicine', 'Computer Science', 'Archived'].map((cat, i) => (
-              <TouchableOpacity key={i} onPress={() => setActiveFilter(cat)} activeOpacity={0.7} style={{
-              paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99,
-              backgroundColor: activeFilter === cat ? RGF.ink : RGF.surface,
-              borderWidth: 1, borderColor: activeFilter === cat ? RGF.ink : RGF.hair,
-              justifyContent: 'center',
-            }}>
-              <Text style={{ fontFamily: activeFilter === cat ? RGF.sansMedium : RGF.sans, fontSize: 13, color: activeFilter === cat ? RGF.bg : RGF.ink }}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {(() => {
+            type Chip = { id: string; label: string };
+            const chips: Chip[] = [
+              { id: 'All', label: 'All' },
+              { id: 'Saved', label: 'Saved' },
+              ...availableFieldChips.map((id) => ({ id, label: FRAMES[id]?.label ?? id })),
+            ];
+            return chips.map((c) => (
+              <TouchableOpacity key={c.id} onPress={() => setActiveFilter(c.id)} activeOpacity={0.7} style={{
+                paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99,
+                backgroundColor: activeFilter === c.id ? RGF.ink : RGF.surface,
+                borderWidth: 1, borderColor: activeFilter === c.id ? RGF.ink : RGF.hair,
+                justifyContent: 'center',
+              }}>
+                <Text style={{ fontFamily: activeFilter === c.id ? RGF.sansMedium : RGF.sans, fontSize: 13, color: activeFilter === c.id ? RGF.bg : RGF.ink }}>
+                  {c.label}
+                </Text>
+              </TouchableOpacity>
+            ));
+          })()}
         </ScrollView>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>

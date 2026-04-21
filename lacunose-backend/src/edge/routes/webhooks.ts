@@ -135,7 +135,10 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     // mobile app to the Supabase user UUID, so the lookup is direct.
     const sb = supabaseAdmin();
     let userId = rcAppUserId;
-    const isUuid = /^[0-9a-f-]{36}$/i.test(rcAppUserId);
+    // Strict RFC-4122 UUID regex — previously `[0-9a-f-]{36}` accepted
+    // 36 dashes. Version-agnostic (v1..v5) so we don't reject future ids.
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(rcAppUserId);
     if (!isUuid) {
       // Fall back to existing subscription row keyed on rc_app_user_id.
       const { data: existing } = await sb
@@ -217,12 +220,23 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       .upsert(update, { onConflict: 'user_id' });
 
     if (upErr) {
+      // FK violation (23503) = rcAppUserId doesn't exist in auth.users
+      // (stale / client-spoofed). Acking with 200 stops RC's retry loop.
+      if (upErr.code === '23503') {
+        logger.warn('rc_subscription_unknown_user_fk', {
+          reqId: req.id,
+          userId,
+          err: upErr.message,
+        });
+        reply.send({ ok: true, skipped: 'unknown_user_fk' });
+        return;
+      }
       logger.error('rc_subscription_upsert_failed', {
         reqId: req.id,
         userId,
         err: upErr.message,
       });
-      // Return 500 so RC retries.
+      // Transient failure — 500 so RC retries.
       reply.code(500).send({ error: 'upsert_failed' });
       return;
     }

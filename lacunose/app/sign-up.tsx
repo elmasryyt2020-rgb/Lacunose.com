@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
 import { Logo } from '../components/Logo';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { useAuth } from '../hooks/useAuth';
+import * as Sentry from '@sentry/react-native';
+
+function isValidEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+}
 
 function SocialBtn({ provider, onPress }: { provider: 'google' | 'apple' | 'email', onPress: () => void }) {
   const { RGF, theme } = useTheme();
@@ -89,16 +94,25 @@ export default function ScreenSignUp() {
   const insets = useSafeAreaInsets();
   const { signInWithGoogle, signInWithApple, signUp } = useAuth();
   const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
 
   const handleSignIn = () => router.push('/sign-in');
   const handleRegister = async () => {
-    if (!email) return;
+    if (sending) return;
+    if (!isValidEmail(email)) {
+      Alert.alert('Enter a valid email address');
+      return;
+    }
+    setSending(true);
     try {
-      await signUp(email);
+      await signUp(email.trim());
       // typed routes haven't regenerated for the new sign-up-otp file yet
-      router.push(`/sign-up-otp?email=${encodeURIComponent(email)}` as any);
+      router.push(`/sign-up-otp?email=${encodeURIComponent(email.trim())}` as any);
     } catch (e) {
-      console.error(e);
+      Sentry.captureException(e);
+      Alert.alert('Could not send code', (e as Error)?.message ?? 'Please try again.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -124,8 +138,20 @@ export default function ScreenSignUp() {
           <>
             <View style={{ flex: 1, minHeight: 60 }} />
             <View style={{ gap: 10 }}>
-              <SocialBtn provider="google" onPress={() => signInWithGoogle().catch(console.error)} />
-              <SocialBtn provider="apple" onPress={() => signInWithApple().catch(console.error)} />
+              <SocialBtn provider="google" onPress={() => {
+                signInWithGoogle().catch((e) => {
+                  Sentry.captureException(e);
+                  Alert.alert('Google sign-in failed', (e as Error)?.message ?? 'Please try again.');
+                });
+              }} />
+              {Platform.OS === 'ios' && (
+                <SocialBtn provider="apple" onPress={() => {
+                  signInWithApple().catch((e) => {
+                    Sentry.captureException(e);
+                    Alert.alert('Apple sign-in failed', (e as Error)?.message ?? 'Please try again.');
+                  });
+                }} />
+              )}
               <SocialBtn provider="email" onPress={() => setIsEmail(true)} />
             </View>
           </>
@@ -144,8 +170,14 @@ export default function ScreenSignUp() {
               We'll email you a 6-digit code.
             </Text>
             
-            <TouchableOpacity onPress={handleRegister} activeOpacity={0.8} style={[styles.primaryBtn, { backgroundColor: RGF.ink }]}>
-              <Text style={[styles.primaryBtnText, { color: RGF.bg }]}>Send Code</Text>
+            <TouchableOpacity
+              onPress={handleRegister}
+              disabled={sending || !isValidEmail(email)}
+              activeOpacity={0.8}
+              style={[styles.primaryBtn, { backgroundColor: RGF.ink, opacity: (sending || !isValidEmail(email)) ? 0.55 : 1 }]}>
+              <Text style={[styles.primaryBtnText, { color: RGF.bg }]}>
+                {sending ? 'Sending…' : 'Send Code'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}

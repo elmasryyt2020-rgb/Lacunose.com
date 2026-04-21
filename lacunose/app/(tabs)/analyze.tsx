@@ -86,7 +86,7 @@ export default function ScreenAnalyze() {
     frameId: 'medicine',
     label: FRAMES['medicine']?.label || 'Medicine'
   });
-  const [topic, setTopic] = useState('GLP-1 agonists for pediatric obesity');
+  const [topic, setTopic] = useState('');
   const [preprints, setPreprints] = useState(true);
   const [openAccess, setOpenAccess] = useState(false);
   const [isYearsModalVisible, setYearsModalVisible] = useState(false);
@@ -207,11 +207,14 @@ export default function ScreenAnalyze() {
           <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
             Topic
           </Text>
-          <TextInput 
+          <TextInput
             style={{ flex: 1, fontFamily: RGF.sans, fontSize: 20, lineHeight: 28, color: RGF.ink, letterSpacing: -0.3, textAlignVertical: 'top' }}
             value={topic}
             onChangeText={setTopic}
             multiline
+            maxLength={240}
+            placeholder={`e.g. long-context attention mechanisms in ${activeLabel.toLowerCase()}`}
+            placeholderTextColor={RGF.muted}
           />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>

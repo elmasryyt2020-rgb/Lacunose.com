@@ -10,13 +10,25 @@
  * sees vendor model names.
  */
 import { z } from 'zod';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ChatOptions, ChatResponse, LLMProviderId } from '@lacunose/types';
 import { activeProvider, providerChat, resolveModel } from './router.js';
 import { getCached, setCached } from './cache.js';
 import { estimateCostUsd } from './usage.js';
+import { record as recordUsage } from './accumulator.js';
 import { log } from '../lib/logger.js';
 
 const clog = log.child('llm');
+
+/**
+ * Usage-tracking context — the gap pipeline wraps its run in
+ * `withUsageTracking(analysisId, async () => { … })` so every LLM call
+ * underneath automatically rolls into the totals for that analysis.
+ */
+const usageCtx = new AsyncLocalStorage<{ analysisId: string }>();
+export function withUsageTracking<T>(analysisId: string, fn: () => Promise<T>): Promise<T> {
+  return usageCtx.run({ analysisId }, fn);
+}
 
 /**
  * Dispatch a chat call to the active provider.
@@ -72,6 +84,12 @@ async function chat(opts: ChatOptions): Promise<ChatResponse> {
     costUsd: Number(costUsd.toFixed(6)),
     cached: false,
   });
+
+  // Roll into the current analysis' usage accumulator, if any.
+  const ctx = usageCtx.getStore();
+  if (ctx) {
+    try { recordUsage(ctx.analysisId, res); } catch { /* never let telemetry break a pipeline */ }
+  }
 
   if (opts.cache) {
     // Fire-and-forget — cache write failures must not block the caller.

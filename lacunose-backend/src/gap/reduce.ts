@@ -73,6 +73,17 @@ export async function reducePhase(
     clusters,
     async (cluster, idx) => {
       if (cluster.length === 0) return [];
+      // Preflight: a candidate must cite >=2 distinct paper_ids. If the
+      // cluster itself only references one paper, every LLM output would be
+      // rejected downstream — skip the call entirely.
+      const clusterDistinctPapers = new Set(cluster.map((s) => s.paper_id)).size;
+      if (clusterDistinctPapers < 2) {
+        logger.info('reduce skip single-paper cluster', {
+          clusterIdx: idx,
+          clusterSize: cluster.length,
+        });
+        return [];
+      }
       const user = reduceUserPrompt({ topic, frame: structuredFrame, cluster, sectionsById });
 
       let raw: z.infer<typeof CandidatesSchema>;

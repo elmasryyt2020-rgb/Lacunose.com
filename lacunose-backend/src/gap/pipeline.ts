@@ -25,6 +25,8 @@ import { clusterSignals } from './cluster.js';
 import { reducePhase } from './reduce.js';
 import { critiquePhase } from './critique.js';
 import { rankGaps, evidenceDensity } from './rank.js';
+import { withUsageTracking } from '../llm/index.js';
+import { startTracking, collect as collectUsage } from '../llm/accumulator.js';
 
 const logger = log.child('gap:pipeline');
 
@@ -55,6 +57,14 @@ const MIN_SIGNALS = 5;
  * On error: mark analysis `failed` with the message, then rethrow.
  */
 export async function runGapAnalysis(opts: RunGapOpts): Promise<void> {
+  // Wrap the whole run in an AsyncLocalStorage context so every `llm.chat`
+  // call (map, reduce, critique) automatically contributes to this
+  // analysis' token + cost totals.
+  startTracking(opts.analysisId);
+  return withUsageTracking(opts.analysisId, () => runGapAnalysisImpl(opts));
+}
+
+async function runGapAnalysisImpl(opts: RunGapOpts): Promise<void> {
   const { analysisId, userId, topic, field, structuredFrame, paperIds, signal } = opts;
   const sb = supabaseAdmin();
   const t0 = Date.now();
@@ -201,16 +211,24 @@ export async function runGapAnalysis(opts: RunGapOpts): Promise<void> {
       }
     }
 
-    // 7. done
+    // 7. done — aggregate cost_tokens from the accumulator.
+    const totals = collectUsage(analysisId);
     await sb
       .from('gap_analyses')
       .update({
         status: 'done',
         completed_at: new Date().toISOString(),
-        // cost_tokens is aggregated by a separate telemetry consumer of the
-        // llm.info logs; we leave the default jsonb placeholder here and let
-        // the accounting job fill it. (writing an empty {} is a no-op on the
-        // default value.)
+        cost_tokens: totals
+          ? {
+              input: totals.inputTokens,
+              output: totals.outputTokens,
+              cached: totals.cachedInputTokens,
+              calls: totals.calls,
+              cost_usd: Number(totals.costUsd.toFixed(6)),
+              providers: totals.providers,
+              models: totals.models,
+            }
+          : {},
       })
       .eq('id', analysisId);
 
@@ -218,6 +236,8 @@ export async function runGapAnalysis(opts: RunGapOpts): Promise<void> {
       analysisId,
       gaps: ranked.length,
       totalLatencyMs: Date.now() - t0,
+      calls: totals?.calls ?? 0,
+      costUsd: totals ? Number(totals.costUsd.toFixed(6)) : 0,
     });
   } catch (e) {
     const msg = (e as Error).message ?? 'unknown';
@@ -227,16 +247,21 @@ export async function runGapAnalysis(opts: RunGapOpts): Promise<void> {
       totalLatencyMs: Date.now() - t0,
     });
     try {
+      // Still roll up whatever tokens we burned before the failure.
+      const totals = collectUsage(analysisId);
       await sb
         .from('gap_analyses')
         .update({
           status: 'failed',
           error: msg,
           completed_at: new Date().toISOString(),
+          cost_tokens: totals
+            ? { input: totals.inputTokens, output: totals.outputTokens, calls: totals.calls, cost_usd: Number(totals.costUsd.toFixed(6)) }
+            : {},
         })
         .eq('id', analysisId);
       // Refund the quota slot so the user isn't charged for a failed analysis.
-      await sb.rpc('decrement_analyses_used', { p_user: userId });
+      try { await sb.rpc('decrement_analyses_used', { p_user: userId }); } catch { /* swallow */ }
     } catch (writeErr) {
       logger.error('failed-status write itself failed', {
         analysisId,

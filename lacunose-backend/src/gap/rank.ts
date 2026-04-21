@@ -60,7 +60,7 @@ export function rankGaps(candidates: CandidateGap[]): CandidateGap[] {
       const sim = cosine(a.titleVec, b.titleVec);
       if (sim > SIM_THRESHOLD) {
         // Drop the lower-novelty item; tiebreak by feasibility, then evidence len
-        const loser = preferWinner(a, b);
+        const loser = pickLoser(a, b);
         loser.dropped = true;
       }
     }
@@ -92,8 +92,12 @@ export function evidenceDensity(candidate: CandidateGap): number {
   return Math.min(candidate.evidence.length / 4, 1) * 10;
 }
 
-function preferWinner(a: Scored, b: Scored): Scored {
-  // Return the one to DROP
+/**
+ * Returns the weaker of two near-duplicate candidates — the one the caller
+ * should DROP. Lower novelty loses; then lower feasibility; then shorter
+ * evidence; then the later-indexed (deterministic tiebreak).
+ */
+function pickLoser(a: Scored, b: Scored): Scored {
   if (a.candidate.novelty_score !== b.candidate.novelty_score) {
     return a.candidate.novelty_score < b.candidate.novelty_score ? a : b;
   }
@@ -103,6 +107,5 @@ function preferWinner(a: Scored, b: Scored): Scored {
   if (a.candidate.evidence.length !== b.candidate.evidence.length) {
     return a.candidate.evidence.length < b.candidate.evidence.length ? a : b;
   }
-  // Final tiebreak: drop the later-indexed one for determinism
   return a.index > b.index ? a : b;
 }

@@ -301,7 +301,8 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const started = Date.now();
       const user = req.user!;
       const id = req.params.id;
-      if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      // Strict RFC-4122 UUID; loose regex (36-char) accepts `-` * 36.
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
         reply.code(400).send({ error: 'invalid_id' });
         return;
       }
@@ -359,7 +360,8 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const started = Date.now();
       const user = req.user!;
       const id = req.params.id;
-      if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      // Strict RFC-4122 UUID; loose regex (36-char) accepts `-` * 36.
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
         reply.code(400).send({ error: 'invalid_id' });
         return;
       }

@@ -69,13 +69,26 @@ function referenceList(parsed: ParsedMail): string[] {
   return [];
 }
 
+export interface PollOptions {
+  /** Process messages with UID > sinceUid. If undefined, falls back to `sinceDate`. */
+  sinceUid?: number;
+  /** Used only when sinceUid is missing (cold start). IMAP SINCE is date-only. */
+  sinceDate: Date;
+}
+
+export interface PollResult {
+  processed: number;
+  /** Highest UID seen this poll, or `sinceUid` if nothing new arrived. */
+  lastUid: number;
+}
+
 export async function pollInbox(
-  since: Date,
+  opts: PollOptions,
   onMessage: (m: InboundEmail) => Promise<void>
-): Promise<void> {
+): Promise<PollResult> {
   if (!env.ZOHO_USER || !env.ZOHO_APP_PASSWORD) {
     logger.warn('imap_skipped_no_creds');
-    return;
+    return { processed: 0, lastUid: opts.sinceUid ?? 0 };
   }
 
   const client = new ImapFlow({
@@ -89,15 +102,26 @@ export async function pollInbox(
     logger: false,
   });
 
+  let lastUid = opts.sinceUid ?? 0;
+  let count = 0;
+
   await client.connect();
   try {
     const lock = await client.getMailboxLock('INBOX');
     try {
-      let count = 0;
+      // Prefer UID-based iteration (IMAP SINCE is date-granular and re-fetches
+      // everything from midnight every poll on a quiet inbox). Cold start
+      // (sinceUid = 0) falls back to the date window — one heavier poll, then
+      // UID mode takes over.
+      const fetchQuery = opts.sinceUid
+        ? { uid: `${opts.sinceUid + 1}:*` }
+        : { since: opts.sinceDate };
+
       for await (const msg of client.fetch(
-        { since },
-        { envelope: true, source: true, internalDate: true }
+        fetchQuery,
+        { envelope: true, source: true, internalDate: true, uid: true }
       )) {
+        if (typeof msg.uid === 'number' && msg.uid > lastUid) lastUid = msg.uid;
         if (!msg.source) continue;
         let parsed: ParsedMail;
         try {
@@ -143,7 +167,11 @@ export async function pollInbox(
           });
         }
       }
-      logger.info('imap_poll_complete', { processed: count, since: since.toISOString() });
+      logger.info('imap_poll_complete', {
+        processed: count,
+        lastUid,
+        mode: opts.sinceUid ? 'uid' : 'date',
+      });
     } finally {
       lock.release();
     }
@@ -154,4 +182,6 @@ export async function pollInbox(
       /* ignore logout errors */
     }
   }
+
+  return { processed: count, lastUid };
 }
