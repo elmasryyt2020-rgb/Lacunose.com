@@ -39,7 +39,7 @@ export default function ScreenMe() {
           <ChipIcon name="settings" size={40} iconSize={16} />
         </View>
 
-        {/* User Card */}
+
         <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: RGF.hair, marginBottom: 32, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
           <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: RGF.butter, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontFamily: RGF.display, fontSize: 28, color: RGF.ink }}>S</Text>
@@ -50,7 +50,6 @@ export default function ScreenMe() {
           </View>
         </View>
 
-        {/* Subscription */}
         <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
           Subscription
         </Text>
@@ -64,7 +63,6 @@ export default function ScreenMe() {
           </View>
         </TouchableOpacity>
 
-        {/* Saved Gaps */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>
             Saved Gaps
@@ -89,7 +87,6 @@ export default function ScreenMe() {
           ))}
         </View>
 
-        {/* Account Settings */}
         <View style={{ backgroundColor: '#fff', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 4, borderWidth: 1, borderColor: RGF.hair }}>
           <SettingRow icon="person" label="Edit Profile" />
           <SettingRow icon="book" label="ORCID Integration" />
