@@ -47,6 +47,11 @@ create table if not exists paper_sections (
 );
 create index if not exists paper_sections_paper on paper_sections (paper_id);
 create index if not exists paper_sections_kind on paper_sections (kind);
+-- FTS index so the sparse leg of retrieval/hybrid.ts doesn't seq-scan
+-- the table on every analysis. Must exist for BM25-style scoring.
+create index if not exists paper_sections_fts
+  on paper_sections
+  using gin (to_tsvector('english', coalesce(text, '')));
 
 -- -------------------------------------------------------------------------
 -- Vector embeddings (SPECTER2 / fallback)

@@ -54,6 +54,11 @@ export async function parsePdfToSections(pdfUrl: string): Promise<ParsedSection[
   child.stderr.setEncoding('utf8');
   child.stdout.on('data', (d: string) => { stdout += d; });
   child.stderr.on('data', (d: string) => { stderr += d; });
+  // Spawn failures (ENOENT for PYMUPDF_PY, EMFILE, etc.) surface as 'error'
+  // events; without this listener they crash the worker.
+  child.on('error', (err: Error) => {
+    stderr += `[spawn error] ${err.message}`;
+  });
 
   const timer = setTimeout(() => {
     killed = true;
@@ -158,27 +163,64 @@ KIND_MAP = {
     'limitation': 'limitations',
     'limitations': 'limitations',
     'future work': 'future_work',
-    'references': 'other',
+    # 'references' is intentionally dropped (not mapped) — reference lists
+    # are citation noise that pollutes retrieval and wastes embedding spend.
     'acknowledgment': 'other',
     'acknowledgments': 'other',
     'acknowledgement': 'other',
     'acknowledgements': 'other',
 }
 
+DROP_HEADERS = {'references', 'bibliography', 'works cited'}
+
 def err(msg):
     print('[]', end='')
     sys.stderr.write(msg + '\\n')
     sys.exit(0)
 
+def safe_url(url):
+    import ipaddress, socket
+    from urllib.parse import urlparse
+    parts = urlparse(url)
+    if parts.scheme not in ('http', 'https'):
+        err('bad scheme: ' + parts.scheme)
+    host = parts.hostname or ''
+    if not host:
+        err('bad host')
+    # Block obvious metadata / loopback hostnames
+    lower = host.lower()
+    for bad in ('localhost', 'metadata.google.internal'):
+        if lower == bad or lower.endswith('.' + bad):
+            err('blocked host: ' + host)
+    # Resolve and check every A/AAAA record against RFC1918 / loopback /
+    # link-local / CGN / cloud-metadata (169.254.169.254).
+    try:
+        addrs = {info[4][0] for info in socket.getaddrinfo(host, None)}
+    except Exception as e:
+        err('dns failed: ' + str(e))
+    for addr in addrs:
+        try:
+            ip = ipaddress.ip_address(addr)
+        except Exception:
+            continue
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            err('blocked ip: ' + addr)
+        if str(ip) == '169.254.169.254':
+            err('blocked metadata ip')
+
 def download(url):
+    safe_url(url)
     req = urllib.request.Request(url, headers={'User-Agent': 'Lacunose/1.0'})
     try:
         resp = urllib.request.urlopen(req, timeout=30)
     except Exception as e:
         err('download failed: ' + str(e))
     size_hdr = resp.headers.get('Content-Length')
-    if size_hdr and int(size_hdr) > MAX_BYTES:
-        err('pdf too large (content-length=' + size_hdr + ')')
+    try:
+        if size_hdr and int(size_hdr) > MAX_BYTES:
+            err('pdf too large (content-length=' + size_hdr + ')')
+    except ValueError:
+        pass  # malformed Content-Length — keep going; byte-count cap still applies
     buf = io.BytesIO()
     read = 0
     while True:
@@ -227,6 +269,8 @@ def split_sections(text):
         start = m.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         header = m.group(1).strip().lower()
+        if header in DROP_HEADERS:
+            continue
         kind = KIND_MAP.get(header, 'other')
         body = text[start:end].strip()
         if len(body) < 30:

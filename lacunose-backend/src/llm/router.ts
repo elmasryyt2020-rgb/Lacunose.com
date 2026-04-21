@@ -23,18 +23,26 @@ import * as anthropic from './providers/anthropic.js';
 import * as deepseek from './providers/deepseek.js';
 import * as mock from './providers/mock.js';
 
+// Anthropic model IDs come from env so ops can flip to a dated suffix
+// (e.g. `claude-opus-4-7-20260310`) without a code change if the catalog
+// advances mid-hackathon.
+const OPUS = env.ANTHROPIC_OPUS_MODEL;
+const HAIKU = env.ANTHROPIC_HAIKU_MODEL;
+
 const MODEL_MATRIX: Record<LLMProviderId, Record<ModelTier, string>> = {
   'anthropic': {
-    synth:    'claude-opus-4-7',
-    map:      'claude-haiku-4-5-20251001',
-    critique: 'claude-haiku-4-5-20251001',
+    synth:    OPUS,
+    map:      HAIKU,
+    critique: HAIKU,
   },
   'anthropic-allopus': {
-    synth:    'claude-opus-4-7',
-    map:      'claude-opus-4-7',
-    critique: 'claude-opus-4-7',
+    synth:    OPUS,
+    map:      OPUS,
+    critique: OPUS,
   },
   'deepseek': {
+    // `deepseek-reasoner` doesn't accept response_format json_object; the
+    // deepseek provider auto-skips it for reasoner. See providers/deepseek.ts.
     synth:    'deepseek-reasoner',
     map:      'deepseek-chat',
     critique: 'deepseek-chat',

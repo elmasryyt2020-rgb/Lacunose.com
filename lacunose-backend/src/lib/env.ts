@@ -9,6 +9,8 @@ const schema = z.object({
 
   // LLM
   LLM_PROVIDER: z.enum(['anthropic', 'anthropic-allopus', 'deepseek', 'mock']).default('anthropic'),
+  ANTHROPIC_OPUS_MODEL: z.string().default('claude-opus-4-7'),
+  ANTHROPIC_HAIKU_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   ANTHROPIC_API_KEY: z.string().optional(),
   DEEPSEEK_API_KEY: z.string().optional(),
   DEEPSEEK_BASE_URL: z.string().url().default('https://api.deepseek.com'),

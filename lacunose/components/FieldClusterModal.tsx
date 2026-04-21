@@ -26,7 +26,14 @@ export function FieldClusterModal({ visible, onClose, onSelect }: FieldClusterMo
   };
 
   const handleSelectConcept = (concept: any) => {
-    onSelect({ frameId: concept.openalex_id, openalexId: concept.openalex_id, label: concept.name });
+    // Raw OpenAlex concepts aren't in our FRAMES catalog, so we route them
+    // through the generic frame template and let the backend narrow the
+    // corpus by concept_id (see analyze screen submit → POST /v1/analyses).
+    onSelect({
+      frameId: 'generic',
+      openalexId: concept.openalex_id,
+      label: concept.name,
+    });
   };
 
   return (

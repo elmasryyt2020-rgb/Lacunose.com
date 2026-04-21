@@ -1,11 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
 import { useEntitlement } from '../hooks/useEntitlement';
-import { purchasePackage, restorePurchases } from '../lib/billing/revenuecat';
+import { getOfferings, purchasePackage, restorePurchases } from '../lib/billing/revenuecat';
+import { isMockMode } from '../lib/mocks';
+import type { PurchasesPackage } from 'react-native-purchases';
 
 function TierCard({ tier, price, period, desc, featured, current, dark }: any) {
   const { RGF, theme } = useTheme();
@@ -45,21 +48,61 @@ export default function ScreenPaywall() {
   const insets = useSafeAreaInsets();
   const { RGF } = useTheme();
   const { data: entitlement } = useEntitlement();
+  const queryClient = useQueryClient();
+  const [proPackage, setProPackage] = useState<PurchasesPackage | null>(null);
+  const [premiumPackage, setPremiumPackage] = useState<PurchasesPackage | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
+
+  useEffect(() => {
+    if (isMockMode) return;
+    (async () => {
+      const offerings = await getOfferings();
+      const available = offerings?.current?.availablePackages ?? [];
+      // Match by product identifier — App Store Connect / Play Console SKUs.
+      const pro = available.find(p => p.product.identifier.includes('pro.monthly')) ?? null;
+      const premium = available.find(p => p.product.identifier.includes('premium.monthly')) ?? null;
+      setProPackage(pro);
+      setPremiumPackage(premium);
+    })();
+  }, []);
 
   const handleRestore = async () => {
     try {
-      await restorePurchases();
+      const info = await restorePurchases();
+      queryClient.invalidateQueries({ queryKey: ['entitlement'] });
+      if (info && Object.keys(info.entitlements.active).length > 0) {
+        Alert.alert('Purchases restored', 'Your subscription is active.');
+      } else {
+        Alert.alert('No purchases to restore');
+      }
     } catch (e) {
-      console.warn(e);
+      Alert.alert('Restore failed', (e as Error)?.message ?? 'Unknown error');
     }
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = async (target: 'pro' | 'premium' = 'pro') => {
+    if (purchasing) return;
+    setPurchasing(true);
     try {
-      await purchasePackage('pro_monthly'); // Assume some method to fetch packages
-      router.back();
+      if (isMockMode) {
+        Alert.alert('Mock mode', `Would purchase the ${target} plan.`);
+        router.back();
+        return;
+      }
+      const pkg = target === 'premium' ? premiumPackage : proPackage;
+      if (!pkg) {
+        Alert.alert('Not available', 'This plan is not currently available. Please try again later.');
+        return;
+      }
+      const result = await purchasePackage(pkg);
+      if (result) {
+        queryClient.invalidateQueries({ queryKey: ['entitlement'] });
+        router.back();
+      }
     } catch (e) {
-      console.warn(e);
+      Alert.alert('Purchase failed', (e as Error)?.message ?? 'Unknown error');
+    } finally {
+      setPurchasing(false);
     }
   };
 
@@ -87,13 +130,22 @@ export default function ScreenPaywall() {
           <TierCard tier="Pro" price="$20" period="/ month" desc="20 analyses · full list · Zotero · advisor" featured={entitlement?.tier === 'free'} current={entitlement?.tier === 'pro'} />
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           activeOpacity={0.8}
-          onPress={handlePurchase}
-          style={{ backgroundColor: RGF.ink, borderRadius: 28, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          onPress={() => handlePurchase('pro')}
+          disabled={purchasing || (!isMockMode && !proPackage)}
+          style={{
+            backgroundColor: RGF.ink, borderRadius: 28, padding: 18,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            opacity: (purchasing || (!isMockMode && !proPackage)) ? 0.55 : 1,
+          }}>
           <View>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 16, color: RGF.bg }}>Start 7-day trial</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, opacity: 0.6, color: RGF.bg, marginTop: 2 }}>$20/mo after · cancel anytime</Text>
+            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 16, color: RGF.bg }}>
+              {purchasing ? 'Processing…' : 'Start 7-day trial'}
+            </Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 12, opacity: 0.6, color: RGF.bg, marginTop: 2 }}>
+              {proPackage?.product?.priceString ?? '$20'}/mo after · cancel anytime
+            </Text>
           </View>
           <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: RGF.bg, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="arrow" size={18} color={RGF.ink} />

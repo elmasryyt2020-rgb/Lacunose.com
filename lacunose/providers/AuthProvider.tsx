@@ -1,4 +1,6 @@
 import React, { createContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -38,16 +40,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        initBilling(session.user.id);
+        // initBilling is internally guarded; safe to call but won't reconfigure.
+        void initBilling(session.user.id);
       }
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        initBilling(session.user.id);
+        void initBilling(session.user.id);
       }
     });
 
@@ -84,22 +87,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithApple = async () => {
+    if (Platform.OS !== 'ios') {
+      throw new Error('Apple Sign-In is only available on iOS.');
+    }
+    const available = await AppleAuthentication.isAvailableAsync();
+    if (!available) {
+      throw new Error('Apple Sign-In is not available on this device.');
+    }
+
+    // Supabase requires a nonce for Apple tokens. Apple hashes the nonce
+    // we send it; Supabase checks our RAW nonce against the hashed claim.
+    const rawNonce = Crypto.randomUUID();
+    const hashedNonce = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      rawNonce
+    );
+
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
+        nonce: hashedNonce,
       });
-      if (credential.identityToken) {
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'apple',
-          token: credential.identityToken,
-        });
-        if (error) throw error;
+      if (!credential.identityToken) {
+        throw new Error('Apple did not return an identity token.');
       }
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+        nonce: rawNonce,
+      });
+      if (error) throw error;
     } catch (error) {
-      console.error(error);
+      // ERR_REQUEST_CANCELED is user-initiated cancellation; swallow.
+      const code = (error as { code?: string })?.code;
+      if (code === 'ERR_REQUEST_CANCELED') return;
       throw error;
     }
   };

@@ -8,6 +8,7 @@ import { FieldClusterModal } from '../../components/FieldClusterModal';
 import { FRAMES, QUICK_FIELDS } from '../../lib/fields/frames';
 import { fetchApi } from '../../lib/api/client';
 import { isMockMode } from '../../lib/mocks';
+import { useEntitlement } from '../../hooks/useEntitlement';
 
 function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch, onPress }: any) {
   const { RGF } = useTheme();
@@ -94,6 +95,7 @@ export default function ScreenAnalyze() {
   const [selectedDesign, setSelectedDesign] = useState('All');
   const [isFieldModalVisible, setFieldModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { data: entitlement } = useEntitlement();
 
   const activeLabel = fieldSelection.label;
   const currentFrame = FRAMES[fieldSelection.frameId] || FRAMES['generic'];
@@ -157,7 +159,9 @@ export default function ScreenAnalyze() {
           <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
             <ChipIcon name="close" size={40} iconSize={16} bg={RGF.surface} />
           </TouchableOpacity>
-          <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>2 of 3 used this month</Text>
+          <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>
+            {entitlement ? `${entitlement.analysesUsed} of ${entitlement.analysesCap} used this month` : ' '}
+          </Text>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 22, height: 36, marginBottom: 20 }} style={{ marginHorizontal: -22, paddingHorizontal: 22 }}>

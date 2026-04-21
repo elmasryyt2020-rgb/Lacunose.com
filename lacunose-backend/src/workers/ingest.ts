@@ -48,19 +48,32 @@ const worker = new Worker<IngestJob>(
           .from('gap_analyses')
           .update({ status: 'done', completed_at: new Date().toISOString(), error: 'insufficient-corpus' })
           .eq('id', analysis_id);
+        // Refund the quota slot — user got nothing useful.
+        await sb.rpc('decrement_analyses_used', { p_user: user_id });
         return;
       }
 
       // Fire-and-forget: parse + embed as best-effort background work.
+      // Deterministic jobIds prevent duplicate work on ingest-job retries
+      // (BullMQ dedupes by jobId).
       for (const p of result.papers) {
         if (p.full_text_url) {
-          await parseQueue.add('parse', { paper_id: p.id, pdf_url: p.full_text_url }, { removeOnComplete: 100 });
+          await parseQueue.add(
+            'parse',
+            { paper_id: p.id, pdf_url: p.full_text_url },
+            { jobId: `parse:${p.id}`, removeOnComplete: 100, attempts: 2 },
+          );
         }
-        await embedQueue.add('embed', { paper_id: p.id }, { removeOnComplete: 100 });
+        await embedQueue.add(
+          'embed',
+          { paper_id: p.id },
+          { jobId: `embed:${p.id}`, removeOnComplete: 100, attempts: 2 },
+        );
       }
 
-      // Immediately enqueue the gap job — retrieval will pull whatever is already embedded.
-      // Give embed a brief head start (30s) before the gap runs so at least most sections have vectors.
+      // Enqueue the gap pipeline. jobId ensures a retried ingest job can't
+      // spawn two concurrent gap pipelines that would double-insert gap_items.
+      // Give embed a 30s head start so at least most sections have vectors.
       await gapQueue.add(
         'gap',
         {
@@ -71,17 +84,23 @@ const worker = new Worker<IngestJob>(
           structured_frame,
           paper_ids: paperIds,
         } satisfies GapJob,
-        { delay: 30_000, removeOnComplete: 50 },
+        { jobId: `gap:${analysis_id}`, delay: 30_000, removeOnComplete: 50, attempts: 1 },
       );
 
       logger.info('queued-gap', { analysis_id, paper_count: paperIds.length });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.error('failed', { analysis_id, err: msg });
+      logger.error('failed', { analysis_id, err: msg, attempt: job.attemptsMade });
       await sb
         .from('gap_analyses')
         .update({ status: 'failed', error: msg, completed_at: new Date().toISOString() })
         .eq('id', analysis_id);
+      // Refund only once, on the FINAL attempt (BullMQ retries on transient
+      // failures; refunding every attempt over-refunds a flaky run).
+      const isFinal = (job.attemptsMade + 1) >= (job.opts.attempts ?? 1);
+      if (isFinal) {
+        await sb.rpc('decrement_analyses_used', { p_user: user_id });
+      }
       throw err;
     }
   },

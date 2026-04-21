@@ -18,6 +18,7 @@ import type {
 } from '@lacunose/types';
 import { llm, parallelMap } from '../llm/index.js';
 import { log } from '../lib/logger.js';
+import { isVerbatimWithEllipsis } from './verbatim.js';
 import { mapSystemPrompt, mapUserPrompt } from './prompts/map.js';
 
 const logger = log.child('gap:map');
@@ -106,21 +107,5 @@ export async function mapPhase(
   return flat;
 }
 
-/**
- * Verbatim check with tolerance for "..." elision.
- *
- * If the quote contains "..." (ASCII) or "…" (U+2026), split on it and
- * require every non-empty fragment to appear in `source` in order.
- */
-function isVerbatimWithEllipsis(quote: string, source: string): boolean {
-  if (!quote || !source) return false;
-  const parts = quote.split(/\.{3}|…/).map((p) => p.trim()).filter(Boolean);
-  if (parts.length === 0) return false;
-  let cursor = 0;
-  for (const part of parts) {
-    const idx = source.indexOf(part, cursor);
-    if (idx === -1) return false;
-    cursor = idx + part.length;
-  }
-  return true;
-}
+// Verbatim guardrail lives in ../verbatim.ts so map and reduce share it
+// (and share the same NFKC + smart-quote + whitespace normalizations).

@@ -11,6 +11,7 @@ export function useGapItem(id: string) {
       const { data, error } = await supabase.from('gap_items').select('*').eq('id', id).single();
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!id,
   });
 }

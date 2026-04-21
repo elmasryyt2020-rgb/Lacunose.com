@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../constants/theme';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ChipIcon, Icon } from '../components/Shared';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -34,11 +34,17 @@ export default function ScreenNotifications() {
 
   const { data: notifications, isLoading, markAllRead } = useNotifications();
 
+  // Keep a ref to the latest markAllRead so the unmount cleanup always calls
+  // the current reference without re-running on every render.
+  const markRef = useRef(markAllRead);
+  markRef.current = markAllRead;
+
   useEffect(() => {
+    // Fire exactly once when the screen unmounts.
     return () => {
-      markAllRead();
+      try { markRef.current?.(); } catch {}
     };
-  }, [markAllRead]);
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>

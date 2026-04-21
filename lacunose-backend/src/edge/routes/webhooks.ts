@@ -13,6 +13,7 @@
  */
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+import { timingSafeEqual } from 'node:crypto';
 import type { Tier } from '@lacunose/types';
 import { env } from '../../lib/env.js';
 import { supabaseAdmin } from '../../lib/supabaseAdmin.js';
@@ -31,6 +32,7 @@ type Platform = 'ios' | 'android';
 
 const EventSchema = z.object({
   event: z.object({
+    id: z.string().optional(),
     type: z.string(),
     app_user_id: z.string().optional(),
     original_app_user_id: z.string().optional(),
@@ -74,16 +76,15 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       return;
     }
     const provided = header.slice('bearer '.length).trim();
-    // Constant-time compare.
-    if (provided.length !== token.length) {
-      reply.code(401).send({ error: 'unauthorized' });
-      return;
-    }
-    let diff = 0;
-    for (let i = 0; i < provided.length; i++) {
-      diff |= provided.charCodeAt(i) ^ token.charCodeAt(i);
-    }
-    if (diff !== 0) {
+    // True constant-time compare via timingSafeEqual; pad to same length first
+    // so attacker can't length-oracle by timing a faster mismatch path.
+    const providedBuf = Buffer.from(provided);
+    const tokenBuf = Buffer.from(token);
+    const padded = Buffer.alloc(Math.max(providedBuf.length, tokenBuf.length));
+    providedBuf.copy(padded);
+    const tokenPadded = Buffer.alloc(padded.length);
+    tokenBuf.copy(tokenPadded);
+    if (providedBuf.length !== tokenBuf.length || !timingSafeEqual(padded, tokenPadded)) {
       reply.code(401).send({ error: 'unauthorized' });
       return;
     }
@@ -105,6 +106,29 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       // Still ack — RC retries indefinitely on non-2xx.
       reply.send({ ok: true });
       return;
+    }
+
+    // Event-level idempotency: RC retries with the same event.id. Skip if
+    // we've already recorded it. (Best-effort — if the dedupe insert fails
+    // we still proceed; worst case a duplicate upsert, which is idempotent
+    // at the DB level for RENEWAL/EXPIRATION events.)
+    const sbDedupe = supabaseAdmin();
+    if (evt.id) {
+      const { error: dedupeErr } = await sbDedupe
+        .from('rc_webhook_events')
+        .insert({ event_id: evt.id, event_type: evt.type, app_user_id: rcAppUserId });
+      if (dedupeErr) {
+        // 23505 = unique violation = already processed.
+        if (dedupeErr.code === '23505') {
+          logger.info('rc_webhook_replay_ignored', { reqId: req.id, eventId: evt.id });
+          reply.send({ ok: true, deduped: true });
+          return;
+        }
+        // Any other dedupe failure: log and proceed.
+        logger.warn('rc_webhook_dedupe_insert_failed', {
+          reqId: req.id, eventId: evt.id, err: dedupeErr.message,
+        });
+      }
     }
 
     // Map rc_app_user_id → our user. RevenueCat's app_user_id is set by the
@@ -139,10 +163,22 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       case 'INITIAL_PURCHASE':
       case 'RENEWAL':
       case 'PRODUCT_CHANGE':
-      case 'UNCANCELLATION':
-        nextTier = tierFromProduct(evt.product_id) ?? 'pro';
+      case 'UNCANCELLATION': {
+        const mapped = tierFromProduct(evt.product_id);
+        if (!mapped) {
+          // Unknown product ID — DO NOT auto-upgrade; log and skip tier
+          // change so we don't grant Pro by accident.
+          logger.warn('rc_webhook_unknown_product', {
+            reqId: req.id,
+            productId: evt.product_id,
+            rcAppUserId,
+          });
+        } else {
+          nextTier = mapped;
+        }
         willRenew = true;
         break;
+      }
       case 'CANCELLATION':
         // Keep paid access until expiry; RC will send EXPIRATION at period_end.
         willRenew = false;

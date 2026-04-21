@@ -17,7 +17,7 @@ import type {
 import { supabaseAdmin } from '../../lib/supabaseAdmin.js';
 import { log } from '../../lib/logger.js';
 import { checkUserRate } from '../rateLimit.js';
-import { checkAnalysisQuota, incrementAnalysesUsed } from '../quota.js';
+import { tryConsumeAnalysis } from '../quota.js';
 import { ingestQueue } from '../queues.js';
 
 const logger = log.child('edge');
@@ -162,8 +162,9 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       return;
     }
 
-    // Quota check.
-    const quota = await checkAnalysisQuota(user.id);
+    // Atomic quota consume — eliminates TOCTOU race where two concurrent
+    // submits both pass a non-atomic check-then-increment.
+    const quota = await tryConsumeAnalysis(user.id);
     if (!quota.allowed) {
       reply.code(402).send({
         error: 'quota_exceeded',
@@ -194,11 +195,11 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         userId: user.id,
         err: insertErr?.message,
       });
+      // Refund the slot we just consumed — insert failed so nothing runs.
+      try { await sb.rpc('decrement_analyses_used', { p_user: user.id }); } catch { /* swallow */ }
       reply.code(500).send({ error: 'insert_failed' });
       return;
     }
-
-    await incrementAnalysesUsed(user.id);
 
     const job: IngestJob = {
       analysis_id: inserted.id,
@@ -209,13 +210,26 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       ...(body.filters ? { filters: body.filters } : {}),
       ...(body.concept_id ? { concept_id: body.concept_id } : {}),
     };
-    await ingestQueue.add('ingest', job, {
-      jobId: `ingest:${inserted.id}`,
-      removeOnComplete: 1000,
-      removeOnFail: 1000,
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 30_000 },
-    });
+    try {
+      await ingestQueue.add('ingest', job, {
+        jobId: `ingest:${inserted.id}`,
+        removeOnComplete: 1000,
+        removeOnFail: 1000,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30_000 },
+      });
+    } catch (err) {
+      // Queue unreachable — roll back both the analysis row and the consumed slot.
+      await sb.from('gap_analyses').delete().eq('id', inserted.id);
+      try { await sb.rpc('decrement_analyses_used', { p_user: user.id }); } catch { /* swallow */ }
+      logger.error('analysis_enqueue_failed', {
+        reqId: req.id,
+        userId: user.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+      reply.code(503).send({ error: 'queue_unavailable' });
+      return;
+    }
 
     const resp: CreateAnalysisResponse = { id: inserted.id, status: 'queued' };
     logger.info('analysis_created', {

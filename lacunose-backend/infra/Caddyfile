@@ -12,9 +12,11 @@ api.lacunose.com {
     encode zstd gzip
 
     # Studio is dangerous to expose; allowlist only Seif's IP.
+    # Default fallback is loopback-only — if SEIF_IP env is missing,
+    # Studio is effectively unreachable rather than public.
     @studio path /project/* /_next/* /studio/*
     handle @studio {
-        @allowed client_ip {$SEIF_IP:0.0.0.0/0}
+        @allowed client_ip {$SEIF_IP:127.0.0.1/32}
         handle @allowed {
             reverse_proxy host.docker.internal:8000
         }

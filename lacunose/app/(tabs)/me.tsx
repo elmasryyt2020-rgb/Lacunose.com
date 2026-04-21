@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, Linking, Platform, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, CategoryPill } from '../../components/Shared';
 import { useAuth } from '../../hooks/useAuth';
 import { useEntitlement } from '../../hooks/useEntitlement';
 import { useSavedGaps } from '../../hooks/useSavedGaps';
 import { FRAMES } from '../../lib/fields/frames';
+import { restorePurchases } from '../../lib/billing/revenuecat';
+import { fetchApi } from '../../lib/api/client';
+import { isMockMode } from '../../lib/mocks';
+
+const ANALYTICS_OPT_OUT_KEY = 'lacunose:analytics-opt-out';
 
 function SettingRow({ icon, label, destructive, onPress }: any) {
   const { RGF } = useTheme();
@@ -33,18 +40,83 @@ export default function ScreenMe() {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [isOrgModalOpen, setOrgModalOpen] = useState(false);
+  const [isAnalyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [analyticsOptOut, setAnalyticsOptOut] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { session, signOut } = useAuth();
+  const { session, user, signOut } = useAuth();
   const { data: entitlement } = useEntitlement();
   const { data: savedGaps, isLoading: loadingGaps } = useSavedGaps();
+
+  // Display-ready name from user_metadata, falling back to email prefix.
+  const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
+  const displayName = String(
+    (meta.full_name as string | undefined)
+      ?? (meta.name as string | undefined)
+      ?? user?.email?.split('@')[0]
+      ?? 'User'
+  );
+  const displayEmail = user?.email ?? '';
+
+  // Load analytics opt-out preference.
+  React.useEffect(() => {
+    AsyncStorage.getItem(ANALYTICS_OPT_OUT_KEY).then(v => {
+      setAnalyticsOptOut(v === '1');
+    });
+  }, []);
 
   const handleSignOut = async () => {
     try {
       await signOut();
       router.replace('/sign-in');
     } catch (e) {
-      console.error(e);
+      Alert.alert('Sign out failed', (e as Error)?.message ?? 'Unknown error');
     }
+  };
+
+  const handleRestore = async () => {
+    try {
+      const info = await restorePurchases();
+      queryClient.invalidateQueries({ queryKey: ['entitlement'] });
+      Alert.alert(
+        info && Object.keys(info.entitlements.active).length > 0
+          ? 'Purchases restored'
+          : 'No purchases to restore',
+      );
+    } catch (e) {
+      Alert.alert('Restore failed', (e as Error)?.message ?? 'Unknown error');
+    }
+  };
+
+  const handleManageSubscription = () => {
+    const url = Platform.OS === 'ios'
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+    Linking.openURL(url).catch(() => Alert.alert('Could not open subscription settings.'));
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== 'DELETE') {
+      Alert.alert('Type DELETE to confirm');
+      return;
+    }
+    try {
+      if (!isMockMode) {
+        await fetchApi('/v1/account/delete', { method: 'POST' });
+      }
+      await signOut();
+      setDeleteModalOpen(false);
+      router.replace('/sign-in');
+    } catch (e) {
+      Alert.alert('Delete failed', (e as Error)?.message ?? 'Unknown error');
+    }
+  };
+
+  const toggleAnalyticsOptOut = async (value: boolean) => {
+    setAnalyticsOptOut(value);
+    await AsyncStorage.setItem(ANALYTICS_OPT_OUT_KEY, value ? '1' : '0');
   };
 
   return (
@@ -67,10 +139,10 @@ export default function ScreenMe() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: RGF.display, fontSize: 24, letterSpacing: -0.5, color: RGF.ink }} numberOfLines={1}>
-              {session?.user?.email?.split('@')[0] || 'User'}
+              {displayName}
             </Text>
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }} numberOfLines={1}>
-              {session?.user?.email || 'Loading...'}
+              {displayEmail || 'Loading...'}
             </Text>
           </View>
         </View>
@@ -78,15 +150,26 @@ export default function ScreenMe() {
         <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
           Subscription
         </Text>
-        <TouchableOpacity onPress={() => router.push('/paywall')} style={{ backgroundColor: RGF.ink, borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+        <TouchableOpacity
+          onPress={() => (entitlement?.tier === 'free' ? router.push('/paywall') : handleManageSubscription())}
+          style={{ backgroundColor: RGF.ink, borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}
+        >
           <View>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg, textTransform: 'capitalize' }}>{entitlement?.tier || 'Free'} Plan</Text>
+            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg, textTransform: 'capitalize' }}>
+              {entitlement?.tier || 'Free'} Plan
+            </Text>
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.bg, opacity: 0.6, marginTop: 2 }}>
-              {entitlement?.tier === 'free' ? `${entitlement?.analysesUsed} / ${entitlement?.analysesCap} analyses used` : `Renews ${new Date(entitlement?.periodEnd || '').toLocaleDateString()}`}
+              {entitlement?.tier === 'free'
+                ? `${entitlement?.analysesUsed ?? 0} / ${entitlement?.analysesCap ?? 3} analyses used`
+                : entitlement?.periodEnd
+                ? `Renews ${new Date(entitlement.periodEnd).toLocaleDateString()}`
+                : 'Active'}
             </Text>
           </View>
           <View style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 99, backgroundColor: RGF.bg }}>
-            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink }}>Manage</Text>
+            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink }}>
+              {entitlement?.tier === 'free' ? 'Upgrade' : 'Manage'}
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -121,11 +204,21 @@ export default function ScreenMe() {
           <SettingRow icon="lock" label="Change Password" onPress={() => setPasswordModalOpen(true)} />
           <SettingRow icon="book" label="ORCID Integration" onPress={() => setOrgModalOpen(true)} />
           <SettingRow icon="bell" label="Notifications" onPress={() => router.push('/notifications')} />
-          <SettingRow icon="mic" label="Contact Support" onPress={() => router.push('/support')} />
+          <SettingRow icon="mail" label="Contact Support" onPress={() => router.push('/support')} />
+          <SettingRow icon="bookmark" label="Restore Purchases" onPress={handleRestore} />
+          <SettingRow icon="chart" label="Analytics preferences" onPress={() => setAnalyticsModalOpen(true)} />
         </View>
 
-        <TouchableOpacity onPress={handleSignOut} style={{ backgroundColor: '#D93E30', paddingVertical: 18, borderRadius: 24, alignItems: 'center', marginTop: 14 }}>
-          <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: '#fff' }}>Sign Out</Text>
+        <TouchableOpacity onPress={handleSignOut} style={{ backgroundColor: RGF.ink, paddingVertical: 18, borderRadius: 24, alignItems: 'center', marginTop: 14 }}>
+          <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg }}>Sign out</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setDeleteModalOpen(true)}
+          style={{ paddingVertical: 18, borderRadius: 24, alignItems: 'center', marginTop: 10 }}
+        >
+          <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, color: '#D93E30' }}>
+            Delete account
+          </Text>
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -144,15 +237,12 @@ export default function ScreenMe() {
             <View style={{ gap: 16 }}>
               <View style={{ backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Full Name</Text>
-                <TextInput defaultValue="Seif Elmasry" style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
+                <TextInput defaultValue={displayName} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} editable={false} />
+                <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted, marginTop: 4 }}>Coming soon — edit your display name in a later release.</Text>
               </View>
               <View style={{ backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Email Address</Text>
-                <TextInput defaultValue="seif@researcher.edu" style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
-              </View>
-              <View style={{ backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
-                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Phone Number</Text>
-                <TextInput defaultValue="+1 415 555 0192" keyboardType="phone-pad" style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
+                <TextInput defaultValue={displayEmail} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} editable={false} />
               </View>
             </View>
             <TouchableOpacity onPress={() => setEditModalOpen(false)} style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 32 }}>
@@ -220,6 +310,69 @@ export default function ScreenMe() {
             
             <TouchableOpacity onPress={() => setOrgModalOpen(false)} style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 32 }}>
               <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Analytics preferences */}
+      <Modal visible={isAnalyticsModalOpen} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: RGF.bg, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, paddingBottom: Math.max(40, insets.bottom + 20) }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+              <Text style={{ fontFamily: RGF.display, fontSize: 26, color: RGF.ink }}>Analytics</Text>
+              <TouchableOpacity onPress={() => setAnalyticsModalOpen(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: RGF.hair, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="close" size={14} color={RGF.ink} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 14, color: RGF.inkSoft, lineHeight: 20, marginBottom: 18 }}>
+              Lacunose collects anonymized usage to improve gap quality. You can opt out at any time — it only affects this device.
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 16, paddingHorizontal: 18, borderWidth: 1, borderColor: RGF.hair }}>
+              <Text style={{ fontFamily: RGF.sansMedium, fontSize: 15, color: RGF.ink }}>Opt out of usage analytics</Text>
+              <Switch value={analyticsOptOut} onValueChange={toggleAnalyticsOptOut} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete account */}
+      <Modal visible={isDeleteModalOpen} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: RGF.bg, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, paddingBottom: Math.max(40, insets.bottom + 20) }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+              <Text style={{ fontFamily: RGF.display, fontSize: 26, color: '#D93E30' }}>Delete account</Text>
+              <TouchableOpacity onPress={() => { setDeleteModalOpen(false); setDeleteConfirm(''); }} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: RGF.hair, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="close" size={14} color={RGF.ink} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 14, color: RGF.inkSoft, lineHeight: 20, marginBottom: 14 }}>
+              This permanently deletes your account, all analyses, all saved gaps, and any active subscription data on our servers. This cannot be undone.
+            </Text>
+            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.muted, marginBottom: 8, letterSpacing: 1.2, textTransform: 'uppercase' }}>Type DELETE to confirm</Text>
+            <View style={{ backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair, marginBottom: 16 }}>
+              <TextInput
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder="DELETE"
+                placeholderTextColor={RGF.muted}
+                value={deleteConfirm}
+                onChangeText={setDeleteConfirm}
+                style={{ fontFamily: RGF.mono, fontSize: 16, color: RGF.ink }}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={handleDeleteAccount}
+              disabled={deleteConfirm !== 'DELETE'}
+              style={{
+                backgroundColor: '#D93E30',
+                paddingVertical: 18, borderRadius: 24, alignItems: 'center',
+                opacity: deleteConfirm === 'DELETE' ? 1 : 0.4,
+              }}
+            >
+              <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 16, color: '#fff' }}>
+                Permanently delete my account
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

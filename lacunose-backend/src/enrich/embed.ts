@@ -136,9 +136,11 @@ export async function embedAllSections(paperId: string): Promise<void> {
     };
   });
 
+  // PK on paper_embeddings is (paper_id, section_id, adapter) — all three
+  // must be in onConflict or PostgREST returns 42P10.
   const { error: upErr } = await sb
     .from('paper_embeddings')
-    .upsert(rows, { onConflict: 'paper_id,section_id' });
+    .upsert(rows, { onConflict: 'paper_id,section_id,adapter' });
   if (upErr) throw new Error(`embedAllSections: upsert failed: ${upErr.message}`);
 
   logger.info('embedded paper sections', {

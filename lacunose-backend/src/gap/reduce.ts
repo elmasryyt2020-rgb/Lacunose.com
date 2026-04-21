@@ -11,6 +11,7 @@
  * if ANY piece of its evidence fails verification.
  */
 import { z } from 'zod';
+import { isVerbatimWithEllipsis } from './verbatim.js';
 import type {
   CandidateGap,
   FieldAdapter,
@@ -163,19 +164,6 @@ function verifyCandidate(
     const sec = sectionsById.get(ev.section_id);
     if (!sec) return false;
     if (!isVerbatimWithEllipsis(ev.quote, sec.text)) return false;
-  }
-  return true;
-}
-
-function isVerbatimWithEllipsis(quote: string, source: string): boolean {
-  if (!quote || !source) return false;
-  const parts = quote.split(/\.{3}|…/).map((p) => p.trim()).filter(Boolean);
-  if (parts.length === 0) return false;
-  let cursor = 0;
-  for (const part of parts) {
-    const idx = source.indexOf(part, cursor);
-    if (idx === -1) return false;
-    cursor = idx + part.length;
   }
   return true;
 }

@@ -74,6 +74,32 @@ function chunks<T>(arr: T[], n: number): T[][] {
 }
 
 /**
+ * Per-paper lookup fallback — used when the batch OR'd query fails
+ * (usually URL length limits in PostgREST). Tries the strongest ID first.
+ */
+async function lookupOneByIds(
+  p: RawPaper,
+  sb: ReturnType<typeof supabaseAdmin>,
+): Promise<PaperRow | null> {
+  const attempts: Array<[string, string]> = [];
+  if (p.doi)         attempts.push(['doi', p.doi]);
+  if (p.pmid)        attempts.push(['pmid', p.pmid]);
+  if (p.arxiv_id)    attempts.push(['arxiv_id', p.arxiv_id]);
+  if (p.openalex_id) attempts.push(['openalex_id', p.openalex_id]);
+  if (p.s2_id)       attempts.push(['s2_id', p.s2_id]);
+  for (const [col, val] of attempts) {
+    const { data, error } = await sb
+      .from('papers')
+      .select('id,doi,pmid,arxiv_id,openalex_id,s2_id,title,abstract,year,venue,field,authors,citation_count,full_text_url,source,ingested_at')
+      .eq(col, val)
+      .maybeSingle();
+    if (error) continue;
+    if (data) return data as unknown as PaperRow;
+  }
+  return null;
+}
+
+/**
  * Upsert papers and return persisted Paper rows + a source-ID → paper_id map.
  */
 export async function persistPapers(
@@ -87,6 +113,7 @@ export async function persistPapers(
     // 1. Look up existing rows for this batch in one OR'd query.
     const orParts = batch.map(idFilter).filter((s) => s.length > 0);
     const existing: PaperRow[] = [];
+    let batchLookupOk = false;
     if (orParts.length > 0) {
       // PostgREST caps `.or()` length; do it chunked if very large.
       const { data, error } = await sb
@@ -94,9 +121,21 @@ export async function persistPapers(
         .select('id,doi,pmid,arxiv_id,openalex_id,s2_id,title,abstract,year,venue,field,authors,citation_count,full_text_url,source,ingested_at')
         .or(orParts.join(','));
       if (error) {
-        logger.warn('lookup failed; falling back to per-paper find', { error: error.message });
+        logger.warn('batch lookup failed; falling back to per-paper find', { error: error.message });
       } else if (data) {
         existing.push(...(data as unknown as PaperRow[]));
+        batchLookupOk = true;
+      }
+    }
+
+    // Per-paper fallback — if the batch OR'd query failed (typically from
+    // URL length limits), look each paper up individually by its strongest
+    // available ID. Otherwise we'd treat every paper as "new" and cascade
+    // into unique-constraint violations on insert.
+    if (!batchLookupOk) {
+      for (const p of batch) {
+        const lookup = await lookupOneByIds(p, sb);
+        if (lookup) existing.push(lookup);
       }
     }
 

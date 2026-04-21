@@ -62,3 +62,41 @@ export async function incrementAnalysesUsed(userId: string): Promise<void> {
     throw new Error(`increment_analyses_used_failed: ${error.message}`);
   }
 }
+
+/**
+ * Atomic check-and-consume. Replaces the non-atomic check + increment
+ * pattern which had a TOCTOU race. Returns { allowed, tier, used, cap } —
+ * on allowed=true the slot has already been consumed.
+ */
+export async function tryConsumeAnalysis(userId: string): Promise<QuotaCheckResult> {
+  const sb = supabaseAdmin();
+
+  // First, learn the user's tier (needed to pick the cap) and current count.
+  const { data: sub, error: lookupErr } = await sb
+    .from('subscriptions')
+    .select('tier, analyses_used_this_period')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (lookupErr) throw new Error(`quota_lookup_failed: ${lookupErr.message}`);
+
+  const tier = normalizeTier(sub?.tier as string | undefined);
+  const cap = capForTier(tier);
+
+  // Atomic server-side consume. Postgres UPDATE … WHERE used < cap is
+  // race-safe under MVCC: two concurrent submits both see the pre-update
+  // row, only one wins the update (the other's WHERE clause gets re-evaluated
+  // under the row lock).
+  const { data: consumed, error: rpcErr } = await sb
+    .rpc('try_consume_analysis', { p_user: userId, p_cap: cap });
+  if (rpcErr) throw new Error(`try_consume_analysis_failed: ${rpcErr.message}`);
+
+  const allowed = consumed === true;
+  // Post-consume "used" is used-before + 1 on success; used-before otherwise.
+  const usedBefore = Number(sub?.analyses_used_this_period ?? 0);
+  return {
+    allowed,
+    tier,
+    used: allowed ? usedBefore + 1 : usedBefore,
+    cap,
+  };
+}

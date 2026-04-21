@@ -131,8 +131,11 @@ export function CategoryPill({ kind }: { kind: string }) {
     'methodology': { bg: RGF.mint, label: 'Methodology' },
     'pico': { bg: RGF.lavender, label: 'PICO' },
     'llm': { bg: RGF.butter, label: 'AI synthesis' },
-    'geography': { bg: RGF.peach, label: 'Geography' },
-    'population': { bg: RGF.rose, label: 'Population' },
+    // Backend emits 'geographic' (singular, canonical); 'geography' kept as
+    // alias so either deploy order works. See packages/types GAP_CATEGORIES.
+    'geographic': { bg: RGF.peach, label: 'Geographic' },
+    'geography': { bg: RGF.peach, label: 'Geographic' },
+    'population': { bg: RGF.butter, label: 'Population' },
     'coverage': { bg: RGF.lavender, label: 'Coverage' },
     'contradiction': { bg: RGF.rose, label: 'Contradiction' },
     'intersection': { bg: RGF.sage, label: 'Intersection' },

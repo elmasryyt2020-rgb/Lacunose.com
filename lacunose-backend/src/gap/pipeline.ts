@@ -55,7 +55,7 @@ const MIN_SIGNALS = 5;
  * On error: mark analysis `failed` with the message, then rethrow.
  */
 export async function runGapAnalysis(opts: RunGapOpts): Promise<void> {
-  const { analysisId, topic, field, structuredFrame, paperIds, signal } = opts;
+  const { analysisId, userId, topic, field, structuredFrame, paperIds, signal } = opts;
   const sb = supabaseAdmin();
   const t0 = Date.now();
   const adapter = getFieldAdapter(field);
@@ -109,6 +109,8 @@ export async function runGapAnalysis(opts: RunGapOpts): Promise<void> {
           error: 'insufficient-signal',
         })
         .eq('id', analysisId);
+      // Refund quota — user got nothing useful, same policy as corpus-empty.
+      try { await sb.rpc('decrement_analyses_used', { p_user: userId }); } catch { /* swallow */ }
       return;
     }
 
@@ -233,6 +235,8 @@ export async function runGapAnalysis(opts: RunGapOpts): Promise<void> {
           completed_at: new Date().toISOString(),
         })
         .eq('id', analysisId);
+      // Refund the quota slot so the user isn't charged for a failed analysis.
+      await sb.rpc('decrement_analyses_used', { p_user: userId });
     } catch (writeErr) {
       logger.error('failed-status write itself failed', {
         analysisId,

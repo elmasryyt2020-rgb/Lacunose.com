@@ -6,8 +6,11 @@ import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, ScoreDial, CategoryPill } from '../../components/Shared';
 import { useAnalyses } from '../../hooks/useAnalyses';
 import { FRAMES } from '../../lib/fields/frames';
+import { useAuth } from '../../hooks/useAuth';
+import { useNotifications } from '../../hooks/useNotifications';
+import { useEntitlement } from '../../hooks/useEntitlement';
 
-function RecentCard({ topic, gap, novelty, category, color }: any) {
+function RecentCard({ topic, gap, novelty, category, color, status }: any) {
   const { RGF } = useTheme();
   return (
     <TouchableOpacity activeOpacity={0.8} style={[styles.recentCard, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
@@ -23,7 +26,7 @@ function RecentCard({ topic, gap, novelty, category, color }: any) {
           <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.inkSoft, marginTop: 4 }} numberOfLines={1}>
             From: {topic}
           </Text>
-          {status !== 'done' && (
+          {status && status !== 'done' && (
             <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.muted, marginTop: 4 }}>
               Status: {status}
             </Text>
@@ -55,6 +58,24 @@ export default function ScreenHome() {
   };
 
   const { data: analyses, isLoading } = useAnalyses({ limit: 3 });
+  const { user } = useAuth();
+  const { data: notifications } = useNotifications();
+  const { data: entitlement } = useEntitlement();
+
+  // Derive user-facing values from live data, not hardcoded demo strings.
+  const firstName = (() => {
+    const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
+    const raw = (meta.full_name as string | undefined)
+      ?? (meta.name as string | undefined)
+      ?? (user?.email ? user.email.split('@')[0] : 'there');
+    return (raw || 'there').split(/\s+/)[0];
+  })();
+  const unreadCount = Array.isArray(notifications)
+    ? notifications.filter((n: any) => !n.is_read).length
+    : 0;
+  const monthlyGapCount = Array.isArray(analyses)
+    ? analyses.reduce((sum: number, a: any) => sum + (a.gap_items?.[0]?.count ?? 0), 0)
+    : 0;
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -72,23 +93,31 @@ export default function ScreenHome() {
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} style={{ position: 'relative' }} onPress={() => router.push('/notifications')}>
             <ChipIcon name="bell" size={40} iconSize={18} bg={RGF.surface} />
-            <View style={{
-              position: 'absolute', top: -2, right: -2, backgroundColor: '#E55B3C',
-              width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Text style={{ color: '#fff', fontSize: 10, fontFamily: RGF.sansSemiBold }}>3</Text>
-            </View>
+            {unreadCount > 0 && (
+              <View style={{
+                position: 'absolute', top: -2, right: -2, backgroundColor: '#E55B3C',
+                width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Text style={{ color: '#fff', fontSize: 10, fontFamily: RGF.sansSemiBold }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
         {/* Hero Section */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
           <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 40, letterSpacing: -1.2, color: RGF.ink }}>
-            Hi Seif,
+            Hi {firstName},
           </Text>
-          <View style={{ backgroundColor: 'rgba(14,14,12,0.06)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink }}>12 gaps found</Text>
-          </View>
+          {monthlyGapCount > 0 && (
+            <View style={{ backgroundColor: 'rgba(14,14,12,0.06)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink }}>
+                {monthlyGapCount} gap{monthlyGapCount === 1 ? '' : 's'} found
+              </Text>
+            </View>
+          )}
         </View>
         
         <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 40, letterSpacing: -1.2, color: RGF.ink, marginBottom: 28 }}>

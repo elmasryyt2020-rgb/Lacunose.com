@@ -55,6 +55,9 @@ async function pluginImpl(fastify: FastifyInstance): Promise<void> {
     try {
       payload = jwt.verify(token, env.SUPABASE_JWT_SECRET, {
         algorithms: ['HS256'],
+        // Reject anon/service-role tokens signed with the same secret by
+        // forcing aud=authenticated. Supabase user tokens always have this aud.
+        audience: 'authenticated',
       }) as SupabaseJwtPayload;
     } catch (err) {
       logger.warn('jwt_verify_failed', { reqId: req.id, reason: (err as Error).message });
@@ -66,11 +69,18 @@ async function pluginImpl(fastify: FastifyInstance): Promise<void> {
       reply.code(401).send({ error: 'invalid_token_payload' });
       return;
     }
+    // Also reject anon (role != 'authenticated'); defense in depth vs. aud check.
+    if (payload.role && payload.role !== 'authenticated') {
+      reply.code(401).send({ error: 'invalid_token_role' });
+      return;
+    }
 
-    req.user = {
-      id: payload.sub,
-      email: typeof payload.email === 'string' ? payload.email : '',
-    };
+    // Sanitize email against RFC-5322 header injection before stashing —
+    // it flows into SMTP X-Lacunose-Email header (see supportBridge).
+    const rawEmail = typeof payload.email === 'string' ? payload.email : '';
+    const email = rawEmail.replace(/[\r\n]+/g, '').slice(0, 254);
+
+    req.user = { id: payload.sub, email };
   };
 
   fastify.decorate('authenticate', authenticate);

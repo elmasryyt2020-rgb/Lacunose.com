@@ -40,6 +40,13 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    # Linux docker does NOT auto-resolve host.docker.internal — we need this
+    # to reach Kong (port 8000, inside supabase compose) and our PM2 edge-fn
+    # (port 4000, running on the host).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - SEIF_IP=${SEIF_IP:-127.0.0.1/32}
     networks:
       - lacunose
 

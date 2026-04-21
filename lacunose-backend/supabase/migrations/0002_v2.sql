@@ -27,6 +27,23 @@ create table if not exists support_threads (
   last_message_at  timestamptz default now()
 );
 create index if not exists support_threads_user on support_threads (user_id, last_message_at desc);
+-- Partial unique: one OPEN thread per user. Closes the race where two
+-- concurrent POSTs each create an orphan thread.
+create unique index if not exists support_threads_one_open_per_user
+  on support_threads (user_id) where status = 'open';
+
+-- -------------------------------------------------------------------------
+-- RevenueCat webhook dedupe — each event.id is processed at most once so
+-- stale retries don't overwrite newer tier state.
+-- -------------------------------------------------------------------------
+create table if not exists rc_webhook_events (
+  event_id      text primary key,
+  received_at   timestamptz default now(),
+  event_type    text,
+  app_user_id   text
+);
+-- GC: remove events older than 60 days (RevenueCat retries for ~7 days).
+create index if not exists rc_webhook_events_received on rc_webhook_events (received_at);
 alter table support_threads enable row level security;
 drop policy if exists own_threads on support_threads;
 create policy own_threads on support_threads
@@ -135,3 +152,77 @@ returns void language sql security definer as $$
       updated_at = now()
   where user_id = p_user;
 $$;
+
+-- Refund a quota slot when an analysis fails or returns no gaps —
+-- called by the ingest / gap workers on status='failed' or insufficient-corpus.
+create or replace function public.decrement_analyses_used(p_user uuid)
+returns void language sql security definer as $$
+  update public.subscriptions
+  set analyses_used_this_period = greatest(coalesce(analyses_used_this_period, 0) - 1, 0),
+      updated_at = now()
+  where user_id = p_user;
+$$;
+
+-- Atomic "check + consume" — eliminates the TOCTOU race where two parallel
+-- submits both pass the quota check and both increment. Upserts the row on
+-- miss (handles orphaned users who somehow skipped the on_auth_user_created
+-- trigger). Returns TRUE if the slot was consumed; FALSE if cap reached.
+create or replace function public.try_consume_analysis(p_user uuid, p_cap int)
+returns boolean language plpgsql security definer as $$
+declare
+  updated int;
+begin
+  -- Ensure a subscriptions row exists (free tier default).
+  insert into public.subscriptions (user_id, tier)
+  values (p_user, 'free')
+  on conflict (user_id) do nothing;
+
+  update public.subscriptions
+    set analyses_used_this_period = coalesce(analyses_used_this_period, 0) + 1,
+        updated_at = now()
+    where user_id = p_user
+      and coalesce(analyses_used_this_period, 0) < p_cap
+  returning 1 into updated;
+
+  return updated is not null;
+end;
+$$;
+
+-- -------------------------------------------------------------------------
+-- Realtime publication — self-hosted Supabase doesn't add new tables
+-- automatically. Without this, the mobile client's `postgres_changes`
+-- subscriptions on gap_items / support_messages / notifications silently
+-- yield nothing. These statements are idempotent via exception handling.
+-- -------------------------------------------------------------------------
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.gap_items;
+  exception when duplicate_object then null; end;
+
+  begin
+    alter publication supabase_realtime add table public.gap_analyses;
+  exception when duplicate_object then null; end;
+
+  begin
+    alter publication supabase_realtime add table public.support_messages;
+  exception when duplicate_object then null; end;
+
+  begin
+    alter publication supabase_realtime add table public.support_threads;
+  exception when duplicate_object then null; end;
+
+  begin
+    alter publication supabase_realtime add table public.notifications;
+  exception when duplicate_object then null; end;
+exception when undefined_object then
+  -- publication doesn't exist (some Supabase builds use a different name);
+  -- log and continue — Realtime will just not stream until it's created.
+  raise notice 'supabase_realtime publication not found; skip';
+end $$;
+
+-- Enable full row replication for tables the client filters on by non-PK fields,
+-- so Realtime gets the filter column (analysis_id, thread_id, user_id).
+alter table public.gap_items replica identity full;
+alter table public.support_messages replica identity full;
+alter table public.notifications replica identity full;
