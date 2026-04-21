@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { RGF } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
@@ -38,10 +39,11 @@ function TierCard({ tier, price, period, desc, featured, current, dark }: any) {
 
 export default function ScreenPaywall() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 36 }}>
           <TouchableOpacity onPress={() => router.back()}>
             <ChipIcon name="close" size={40} iconSize={16} />

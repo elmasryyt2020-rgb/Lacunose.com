@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { RGF } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
@@ -66,13 +67,14 @@ function FormInput({ icon, placeholder, secure, optional }: { icon: string, plac
 export default function ScreenSignUp() {
   const router = useRouter();
   const [isEmail, setIsEmail] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleSignIn = () => router.push('/sign-in');
   const handleHome = () => router.replace('/(tabs)/home');
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 60 + insets.bottom }} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => isEmail ? setIsEmail(false) : router.back()}>
             <ChipIcon name="chevL" size={40} iconSize={14} />

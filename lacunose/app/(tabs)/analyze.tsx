@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { RGF } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
@@ -22,10 +23,11 @@ function FilterRow({ label, value, muted, last }: any) {
 
 export default function ScreenAnalyze() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
           <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
             <ChipIcon name="close" size={40} iconSize={16} />

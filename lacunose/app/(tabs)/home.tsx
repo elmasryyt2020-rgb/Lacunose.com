@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { RGF } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
@@ -50,6 +51,7 @@ function RecentRow({ topic, count, time, color }: any) {
 
 export default function ScreenHome() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   const recent = [
     { topic: 'GLP-1 agonists in pediatric obesity', count: 8, time: '2h ago', color: RGF.sky },
@@ -59,7 +61,7 @@ export default function ScreenHome() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         {/* top row: question mark + bell */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
           <TouchableOpacity onPress={() => router.push('/(tabs)/library')}>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { RGF } from '../../constants/theme';
 import { ChipIcon, Icon, CategoryPill } from '../../components/Shared';
@@ -21,6 +22,7 @@ function SettingRow({ icon, label, destructive }: any) {
 
 export default function ScreenMe() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const savedGaps = [
     { title: 'Long-term cardiometabolic safety under age 12', cat: 'future-work', color: RGF.sky },
@@ -29,7 +31,7 @@ export default function ScreenMe() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
           <Text style={{ fontFamily: RGF.display, fontSize: 40, lineHeight: 41, letterSpacing: -1.2, color: RGF.ink }}>
             Profile

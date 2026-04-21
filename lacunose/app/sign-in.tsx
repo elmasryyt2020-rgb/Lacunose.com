@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { RGF } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
@@ -8,13 +9,14 @@ import Svg, { Path } from 'react-native-svg';
 
 export default function ScreenSignIn() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleHome = () => {
     router.replace('/(tabs)/home');
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: 32 + insets.bottom }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <ChipIcon name="chevL" size={40} iconSize={14} />

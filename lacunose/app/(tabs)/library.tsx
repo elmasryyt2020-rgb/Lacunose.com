@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RGF } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
 import { useRouter } from 'expo-router';
 
 export default function ScreenLibrary() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const items = [
     { topic: 'GLP-1 agonists in pediatric obesity', field: 'Current', gaps: 8, date: 'Today', color: RGF.sky },
@@ -18,7 +20,7 @@ export default function ScreenLibrary() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <ChipIcon name="filter" size={40} iconSize={16} />
           <ChipIcon name="search" size={40} iconSize={16} />

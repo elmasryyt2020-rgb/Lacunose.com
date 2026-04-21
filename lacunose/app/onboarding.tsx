@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { RGF } from '../constants/theme';
 import { Icon, CategoryPill, ScoreDial } from '../components/Shared';
 
 // Onboarding scaffold
 function OnboardShell({ step, total = 4, children, ctaLabel = 'Next', ctaArrow = true, skip = true, onNext }: any) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, { paddingBottom: 28 + insets.bottom }]}>
       <View style={styles.header}>
         <View style={styles.dots}>
           {Array.from({ length: total }).map((_, i) => (
@@ -71,13 +75,19 @@ function ScreenOnboardA({ onNext }: { onNext: () => void }) {
   );
 }
 
-function PicoRow({ letter, label, value, color }: any) {
+function PicoRow({ letter, label, initialValue, color }: any) {
+  const [value, setValue] = useState(initialValue);
+  const [isEditing, setIsEditing] = useState(false);
+
   return (
-    <View style={{
-      backgroundColor: '#fff', borderRadius: 18, padding: 12,
-      borderWidth: 1, borderColor: RGF.hair,
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-    }}>
+    <TouchableOpacity 
+      activeOpacity={0.9} 
+      onPress={() => setIsEditing(true)}
+      style={{
+        backgroundColor: '#fff', borderRadius: 18, padding: 12,
+        borderWidth: 1, borderColor: isEditing ? RGF.ink : RGF.hair,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
       <View style={{
         width: 36, height: 36, borderRadius: 12, backgroundColor: color,
         alignItems: 'center', justifyContent: 'center',
@@ -86,10 +96,26 @@ function PicoRow({ letter, label, value, color }: any) {
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 1 }}>{label}</Text>
-        <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.ink }} numberOfLines={1}>{value}</Text>
+        {isEditing ? (
+          <TextInput 
+            autoFocus 
+            style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.ink, padding: 0 }} 
+            value={value} 
+            onChangeText={setValue}
+            onBlur={() => setIsEditing(false)}
+          />
+        ) : (
+          <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.ink }} numberOfLines={1}>{value}</Text>
+        )}
       </View>
-      <Icon name="chevR" size={14} color={RGF.muted} />
-    </View>
+      {isEditing ? (
+        <TouchableOpacity onPress={() => setIsEditing(false)} style={{ padding: 4 }}>
+          <Icon name="check" size={16} color={RGF.ink} stroke={2.4} />
+        </TouchableOpacity>
+      ) : (
+        <Icon name="chevR" size={14} color={RGF.muted} />
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -98,18 +124,18 @@ function ScreenOnboardB({ onNext }: { onNext: () => void }) {
     <OnboardShell step={1} ctaLabel="Run analysis" onNext={onNext}>
       <Text style={styles.kicker}>Step 2 of 4 · Frame the question</Text>
       <Text style={styles.headline}>Tell us the{'\n'}<Text style={{ fontStyle: 'italic' }}>PICO.</Text></Text>
-      <Text style={[styles.paragraph, { marginBottom: 20 }]}>Population, Intervention, Comparator, Outcome. It's okay to leave some blank.</Text>
+      <Text style={[styles.paragraph, { marginBottom: 20 }]}>Population, Intervention, Comparator, Outcome. Edit if needed.</Text>
 
       <View style={{ gap: 10, flex: 1 }}>
-        <PicoRow letter="P" label="Population" value="Children 6–17 with BMI ≥ 95th percentile" color={RGF.rose}/>
-        <PicoRow letter="I" label="Intervention" value="Semaglutide 2.4mg weekly" color={RGF.lavender}/>
-        <PicoRow letter="C" label="Comparator" value="Lifestyle only" color={RGF.mint}/>
-        <PicoRow letter="O" label="Outcome" value="Cardiometabolic events at 24 mo" color={RGF.sky}/>
+        <PicoRow letter="P" label="Population" initialValue="Children 6–17 with BMI ≥ 95th percentile" color={RGF.rose}/>
+        <PicoRow letter="I" label="Intervention" initialValue="Semaglutide 2.4mg weekly" color={RGF.lavender}/>
+        <PicoRow letter="C" label="Comparator" initialValue="Lifestyle only" color={RGF.mint}/>
+        <PicoRow letter="O" label="Outcome" initialValue="Cardiometabolic events at 24 mo" color={RGF.sky}/>
       </View>
 
       <View style={{ backgroundColor: '#fff', borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 }}>
         <Icon name="sparkle" size={16} color={RGF.ink} />
-        <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.inkSoft, flex: 1 }}>We auto-filled this from your topic. Tap to edit.</Text>
+        <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.inkSoft, flex: 1 }}>We auto-filled this from your topic. Tap any row to edit.</Text>
       </View>
     </OnboardShell>
   );
@@ -117,7 +143,6 @@ function ScreenOnboardB({ onNext }: { onNext: () => void }) {
 
 function ScreenOnboardC({ onNext }: { onNext: () => void }) {
   useEffect(() => {
-    // Auto advance after 3.5 seconds for simulation
     const timer = setTimeout(() => {
       onNext();
     }, 3500);
@@ -136,7 +161,7 @@ function ScreenOnboardC({ onNext }: { onNext: () => void }) {
       <Text style={styles.kicker}>Step 3 of 4 · Synthesis in progress</Text>
       <Text style={styles.headline}>Reading everything{'\n'}<Text style={{ fontStyle: 'italic' }}>so you don't have to.</Text></Text>
 
-      <View style={{ backgroundColor: '#fff', borderRadius: 22, paddingVertical: 18, paddingHorizontal: 20, marginBottom: 20, borderWidth: 1, borderColor: RGF.hair, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 }}>
+      <View style={{ backgroundColor: '#fff', borderRadius: 22, paddingVertical: 18, paddingHorizontal: 20, marginBottom: 24, borderWidth: 1, borderColor: RGF.hair, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 13, color: RGF.ink }}>3 of 4 steps</Text>
           <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>~20s remaining</Text>
@@ -159,28 +184,20 @@ function ScreenOnboardC({ onNext }: { onNext: () => void }) {
           </View>
         ))}
       </View>
+
+      <View style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>Uncovering insights</Text>
+        <TeaserGap rank={1} color={RGF.sky} category="future-work" novelty={9} visibleTitle="Long-term cardiometabolic" hiddenTitle="safety under age 12" />
+        <View style={{ marginTop: 12 }}>
+          <BlurredStack />
+        </View>
+        <BlurView intensity={70} tint="light" style={{ position: 'absolute', top: 0, left: -20, right: -20, bottom: -20 }} />
+      </View>
     </OnboardShell>
   );
 }
 
-function BlurredStack() {
-  return (
-    <View style={{ gap: 10, opacity: 0.6 }}>
-      {[RGF.mint, RGF.butter, RGF.lavender].map((c, i) => (
-        <View key={i} style={{ backgroundColor: '#fff', borderRadius: 22, padding: 16, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', gap: 12 }}>
-          <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: c }} />
-          <View style={{ flex: 1 }}>
-            <View style={{ height: 8, backgroundColor: RGF.hair, borderRadius: 4, marginBottom: 8, width: '40%' }} />
-            <View style={{ height: 14, backgroundColor: RGF.hair, borderRadius: 4, marginBottom: 6, width: '85%' }} />
-            <View style={{ height: 14, backgroundColor: RGF.hair, borderRadius: 4, width: '60%' }} />
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function TeaserGap({ rank, color, category, novelty, visibleTitle, hiddenTitle }: any) {
+function TeaserGap({ rank, color, category, novelty, visibleTitle, hiddenTitle, blurRest }: any) {
   return (
     <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair, flexShrink: 0 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
@@ -190,14 +207,25 @@ function TeaserGap({ rank, color, category, novelty, visibleTitle, hiddenTitle }
         <View style={{ flex: 1 }}>
           <CategoryPill kind={category} />
           <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
-            <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 23, letterSpacing: -0.4, color: RGF.ink }}>
+            <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 24, letterSpacing: -0.4, color: RGF.ink }}>
               {visibleTitle}{' '}
             </Text>
-            <View style={{ backgroundColor: 'rgba(14,14,12,0.95)', borderRadius: 6, paddingHorizontal: 8 }}>
-              <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 23, color: 'rgba(14,14,12,0)', opacity: 0.1 }}>
+            {blurRest ? (
+              <View style={{ 
+                backgroundColor: 'rgba(14,14,12,0.9)', 
+                borderRadius: 6, paddingHorizontal: 8, 
+                shadowColor: '#0E0E0C', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 6, elevation: 2,
+                justifyContent: 'center', alignItems: 'center'
+              }}>
+                <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 24, color: 'transparent' }}>
+                  {hiddenTitle}
+                </Text>
+              </View>
+            ) : (
+              <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 24, color: RGF.ink }}>
                 {hiddenTitle}
               </Text>
-            </View>
+            )}
           </View>
         </View>
       </View>
@@ -212,10 +240,29 @@ function TeaserGap({ rank, color, category, novelty, visibleTitle, hiddenTitle }
   );
 }
 
+function BlurredStack() {
+  return (
+    <View style={{ gap: 10, opacity: 0.7 }}>
+      {[RGF.mint, RGF.butter, RGF.lavender].map((c, i) => (
+        <View key={i} style={{ backgroundColor: '#fff', borderRadius: 22, padding: 16, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', gap: 12 }}>
+          <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: c }} />
+          <View style={{ flex: 1 }}>
+            <View style={{ height: 8, backgroundColor: RGF.hair, borderRadius: 4, marginBottom: 8, width: '40%' }} />
+            <View style={{ height: 14, backgroundColor: RGF.hair, borderRadius: 4, marginBottom: 6, width: '85%' }} />
+            <View style={{ height: 14, backgroundColor: RGF.hair, borderRadius: 4, width: '60%' }} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function ScreenOnboardReveal() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, { paddingBottom: 28 + insets.bottom }]}>
       <View style={[styles.header, { marginBottom: 18 }]}>
         <View style={styles.dots}>
           {[0, 1, 2, 3].map((_, i) => (
@@ -226,16 +273,16 @@ function ScreenOnboardReveal() {
       <Text style={styles.kicker}>Analysis complete · 8 gaps found</Text>
       <Text style={[styles.headline, { fontSize: 32, marginBottom: 16 }]}>You found a gap{'\n'}<Text style={{ fontStyle: 'italic' }}>nobody else has claimed.</Text></Text>
 
-      <TeaserGap rank={1} color={RGF.sky} category="future-work" novelty={9} visibleTitle="Long-term cardiometabolic" hiddenTitle="safety under age 12" />
+      <TeaserGap rank={1} color={RGF.sky} category="future-work" novelty={9} visibleTitle="Long-term cardiometabolic" hiddenTitle="safety under age 12" blurRest />
 
       <View style={{ flex: 1, position: 'relative', marginTop: 12 }}>
         <BlurredStack />
+        <BlurView intensity={70} tint="light" style={{ position: 'absolute', top: 0, bottom: 0, left: -20, right: -20 }} />
 
         {/* Sign-up gate overlay */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '110%', justifyContent: 'flex-end', padding: 4 }}>
-          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', backgroundColor: 'rgba(241,238,232,0.85)' }} />
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', justifyContent: 'flex-end', paddingBottom: 8 }}>
           
-          <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair, elevation: 10, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair, elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Icon name="lock" size={14} color={RGF.muted} />
               <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>
@@ -274,7 +321,6 @@ const styles = StyleSheet.create({
     backgroundColor: RGF.bg,
     paddingTop: 60,
     paddingHorizontal: 22,
-    paddingBottom: 28,
   },
   header: {
     flexDirection: 'row',
