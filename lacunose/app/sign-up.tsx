@@ -6,6 +6,7 @@ import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
 import { Logo } from '../components/Logo';
 import Svg, { Path, Rect } from 'react-native-svg';
+import { useAuth } from '../hooks/useAuth';
 
 function SocialBtn({ provider, onPress }: { provider: 'google' | 'apple' | 'email', onPress: () => void }) {
   const { RGF, theme } = useTheme();
@@ -49,16 +50,31 @@ function SocialBtn({ provider, onPress }: { provider: 'google' | 'apple' | 'emai
   );
 }
 
-function FormInput({ icon, placeholder, secure, optional }: { icon: string, placeholder: string, secure?: boolean, optional?: boolean }) {
+type FormInputProps = {
+  icon: string;
+  placeholder: string;
+  secure?: boolean;
+  optional?: boolean;
+  value?: string;
+  onChangeText?: (t: string) => void;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+};
+
+function FormInput({ icon, placeholder, secure, optional, value, onChangeText, autoCapitalize, keyboardType }: FormInputProps) {
   const { RGF } = useTheme();
   return (
     <View style={[styles.inputBox, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
       <Icon name={icon} size={18} color={RGF.muted} />
-      <TextInput 
+      <TextInput
         style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }}
         placeholder={placeholder}
         placeholderTextColor={RGF.muted}
         secureTextEntry={secure}
+        value={value}
+        onChangeText={onChangeText}
+        autoCapitalize={autoCapitalize}
+        keyboardType={keyboardType}
       />
       {optional && <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted, textTransform: 'uppercase' }}>Optional</Text>}
       {secure && <Icon name="eye" size={18} color={RGF.muted} />}
@@ -71,9 +87,20 @@ export default function ScreenSignUp() {
   const { RGF } = useTheme();
   const [isEmail, setIsEmail] = useState(false);
   const insets = useSafeAreaInsets();
+  const { signInWithGoogle, signInWithApple, signUp } = useAuth();
+  const [email, setEmail] = useState('');
 
   const handleSignIn = () => router.push('/sign-in');
-  const handleHome = () => router.replace('/(tabs)/home');
+  const handleRegister = async () => {
+    if (!email) return;
+    try {
+      await signUp(email);
+      // typed routes haven't regenerated for the new sign-up-otp file yet
+      router.push(`/sign-up-otp?email=${encodeURIComponent(email)}` as any);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -97,8 +124,8 @@ export default function ScreenSignUp() {
           <>
             <View style={{ flex: 1, minHeight: 60 }} />
             <View style={{ gap: 10 }}>
-              <SocialBtn provider="google" onPress={handleHome} />
-              <SocialBtn provider="apple" onPress={handleHome} />
+              <SocialBtn provider="google" onPress={() => signInWithGoogle().catch(console.error)} />
+              <SocialBtn provider="apple" onPress={() => signInWithApple().catch(console.error)} />
               <SocialBtn provider="email" onPress={() => setIsEmail(true)} />
             </View>
           </>
@@ -112,14 +139,13 @@ export default function ScreenSignUp() {
                 <TextInput style={[styles.inputText, { color: RGF.ink }]} placeholder="Last name" placeholderTextColor={RGF.muted} />
               </View>
             </View>
-            <FormInput icon="mail" placeholder="Email address" />
-            <FormInput icon="phone" placeholder="Phone number" />
-            <FormInput icon="link" placeholder="ORCID iD" optional />
-            <FormInput icon="lock" placeholder="Password" secure />
-            <FormInput icon="check" placeholder="Confirm password" secure />
+            <FormInput icon="mail" placeholder="Email address" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+            <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted, marginBottom: 12 }}>
+              We'll email you a 6-digit code.
+            </Text>
             
-            <TouchableOpacity onPress={handleHome} activeOpacity={0.8} style={[styles.primaryBtn, { backgroundColor: RGF.ink }]}>
-              <Text style={[styles.primaryBtnText, { color: RGF.bg }]}>Register</Text>
+            <TouchableOpacity onPress={handleRegister} activeOpacity={0.8} style={[styles.primaryBtn, { backgroundColor: RGF.ink }]}>
+              <Text style={[styles.primaryBtnText, { color: RGF.bg }]}>Send Code</Text>
             </TouchableOpacity>
           </View>
         )}

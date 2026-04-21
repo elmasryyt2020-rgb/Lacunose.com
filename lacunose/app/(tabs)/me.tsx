@@ -4,6 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, CategoryPill } from '../../components/Shared';
+import { useAuth } from '../../hooks/useAuth';
+import { useEntitlement } from '../../hooks/useEntitlement';
+import { useSavedGaps } from '../../hooks/useSavedGaps';
+import { FRAMES } from '../../lib/fields/frames';
 
 function SettingRow({ icon, label, destructive, onPress }: any) {
   const { RGF } = useTheme();
@@ -30,10 +34,18 @@ export default function ScreenMe() {
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [isOrgModalOpen, setOrgModalOpen] = useState(false);
 
-  const savedGaps = [
-    { title: 'Long-term cardiometabolic safety under age 12', cat: 'future-work', color: RGF.sky },
-    { title: 'Dose-response in adolescents with Down syndrome', cat: 'pico', color: RGF.lavender },
-  ];
+  const { session, signOut } = useAuth();
+  const { data: entitlement } = useEntitlement();
+  const { data: savedGaps, isLoading: loadingGaps } = useSavedGaps();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.replace('/sign-in');
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -49,11 +61,17 @@ export default function ScreenMe() {
 
         <View style={{ backgroundColor: RGF.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: RGF.hair, marginBottom: 32, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
           <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: RGF.butter, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontFamily: RGF.display, fontSize: 28, color: '#111' }}>S</Text>
+            <Text style={{ fontFamily: RGF.display, fontSize: 28, color: '#111' }}>
+              {(session?.user?.email || 'U')[0].toUpperCase()}
+            </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: RGF.display, fontSize: 24, letterSpacing: -0.5, color: RGF.ink }}>Seif Elmasry</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>seif@researcher.edu</Text>
+            <Text style={{ fontFamily: RGF.display, fontSize: 24, letterSpacing: -0.5, color: RGF.ink }} numberOfLines={1}>
+              {session?.user?.email?.split('@')[0] || 'User'}
+            </Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }} numberOfLines={1}>
+              {session?.user?.email || 'Loading...'}
+            </Text>
           </View>
         </View>
 
@@ -62,8 +80,10 @@ export default function ScreenMe() {
         </Text>
         <TouchableOpacity onPress={() => router.push('/paywall')} style={{ backgroundColor: RGF.ink, borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <View>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg }}>Pro Plan</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.bg, opacity: 0.6, marginTop: 2 }}>Renews May 14</Text>
+            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg, textTransform: 'capitalize' }}>{entitlement?.tier || 'Free'} Plan</Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.bg, opacity: 0.6, marginTop: 2 }}>
+              {entitlement?.tier === 'free' ? `${entitlement?.analysesUsed} / ${entitlement?.analysesCap} analyses used` : `Renews ${new Date(entitlement?.periodEnd || '').toLocaleDateString()}`}
+            </Text>
           </View>
           <View style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 99, backgroundColor: RGF.bg }}>
             <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink }}>Manage</Text>
@@ -74,17 +94,19 @@ export default function ScreenMe() {
           <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>
             Saved Gaps
           </Text>
-          <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>{savedGaps.length} total</Text>
+          <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>{savedGaps?.length || 0} total</Text>
         </View>
         
         <View style={{ gap: 10, marginBottom: 32 }}>
-          {savedGaps.map((gap, i) => (
-            <TouchableOpacity key={i} onPress={() => router.push('/analyze/detail')} style={{ backgroundColor: RGF.surface, borderRadius: 22, padding: 16, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: gap.color, alignItems: 'center', justifyContent: 'center' }}>
+          {loadingGaps && <Text style={{ fontFamily: RGF.sans, color: RGF.muted }}>Loading...</Text>}
+          {!loadingGaps && savedGaps?.length === 0 && <Text style={{ fontFamily: RGF.sans, color: RGF.muted }}>No saved gaps yet</Text>}
+          {savedGaps?.map((gap: any, i: number) => (
+            <TouchableOpacity key={gap.id || i} onPress={() => router.push(`/analyze/detail?gapId=${gap.id}`)} style={{ backgroundColor: RGF.surface, borderRadius: 22, padding: 16, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: (RGF as any)[FRAMES[gap.field || 'medicine']?.rows[0]?.color || 'lavender'] || RGF.lavender, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="bookmark" size={16} color={RGF.ink} />
               </View>
               <View style={{ flex: 1 }}>
-                <CategoryPill kind={gap.cat} />
+                <CategoryPill kind={gap.category || 'future-work'} />
                 <Text style={{ fontFamily: RGF.display, fontSize: 18, lineHeight: 21, letterSpacing: -0.3, color: RGF.ink, marginTop: 6 }} numberOfLines={2}>
                   {gap.title}
                 </Text>
@@ -102,7 +124,7 @@ export default function ScreenMe() {
           <SettingRow icon="mic" label="Contact Support" onPress={() => router.push('/support')} />
         </View>
 
-        <TouchableOpacity style={{ backgroundColor: '#D93E30', paddingVertical: 18, borderRadius: 24, alignItems: 'center', marginTop: 14 }}>
+        <TouchableOpacity onPress={handleSignOut} style={{ backgroundColor: '#D93E30', paddingVertical: 18, borderRadius: 24, alignItems: 'center', marginTop: 14 }}>
           <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: '#fff' }}>Sign Out</Text>
         </TouchableOpacity>
 

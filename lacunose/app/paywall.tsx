@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
+import { useEntitlement } from '../hooks/useEntitlement';
+import { purchasePackage, restorePurchases } from '../lib/billing/revenuecat';
 
 function TierCard({ tier, price, period, desc, featured, current, dark }: any) {
   const { RGF, theme } = useTheme();
@@ -42,6 +44,24 @@ export default function ScreenPaywall() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { RGF } = useTheme();
+  const { data: entitlement } = useEntitlement();
+
+  const handleRestore = async () => {
+    try {
+      await restorePurchases();
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const handlePurchase = async () => {
+    try {
+      await purchasePackage('pro_monthly'); // Assume some method to fetch packages
+      router.back();
+    } catch (e) {
+      console.warn(e);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -50,7 +70,9 @@ export default function ScreenPaywall() {
           <TouchableOpacity onPress={() => router.back()}>
             <ChipIcon name="close" size={40} iconSize={16} bg={RGF.surface} />
           </TouchableOpacity>
-          <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>Restore</Text>
+          <TouchableOpacity onPress={handleRestore}>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>Restore</Text>
+          </TouchableOpacity>
         </View>
         <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 39, letterSpacing: -1.2, color: RGF.ink, marginBottom: 6 }}>
           Go <Text style={{ fontStyle: 'italic' }}>deeper.</Text>
@@ -61,13 +83,13 @@ export default function ScreenPaywall() {
 
         {/* tier cards */}
         <View style={{ gap: 10, marginBottom: 20 }}>
-          <TierCard tier="Free" price="$0" desc="3 analyses/month · top-5 gaps" current />
-          <TierCard tier="Pro" price="$20" period="/ month" desc="20 analyses · full list · Zotero · advisor" featured />
+          <TierCard tier="Free" price="$0" desc={`${entitlement?.analysesUsed || 0}/${entitlement?.tier === 'free' ? 3 : '∞'} analyses · top-5 gaps`} current={entitlement?.tier === 'free'} />
+          <TierCard tier="Pro" price="$20" period="/ month" desc="20 analyses · full list · Zotero · advisor" featured={entitlement?.tier === 'free'} current={entitlement?.tier === 'pro'} />
         </View>
 
         <TouchableOpacity 
           activeOpacity={0.8}
-          onPress={() => router.back()}
+          onPress={handlePurchase}
           style={{ backgroundColor: RGF.ink, borderRadius: 28, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
             <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 16, color: RGF.bg }}>Start 7-day trial</Text>

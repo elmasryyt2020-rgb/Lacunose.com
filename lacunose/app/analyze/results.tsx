@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, CategoryPill, ScoreDial } from '../../components/Shared';
+import { useAnalysis } from '../../hooks/useAnalyses';
+import { useGapStream } from '../../hooks/useGapStream';
+import { FRAMES } from '../../lib/fields/frames';
 
 function StreamStatus() {
   const { RGF } = useTheme();
@@ -104,6 +107,16 @@ function GapCardPending({ rank }: { rank: number }) {
 export default function ScreenResults() {
   const router = useRouter();
   const { RGF } = useTheme();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  
+  const { data: analysis, isLoading } = useAnalysis(id || '');
+  const stream = useGapStream(id || '');
+  
+  const dbGaps = analysis?.gap_items || [];
+  const dbGapIds = new Set(dbGaps.map((g: any) => g.id));
+  const newGaps = stream.filter((g: any) => !dbGapIds.has(g.id));
+  const allGaps = [...dbGaps, ...newGaps].sort((a: any, b: any) => a.rank - b.rank);
+  const isPending = analysis?.status !== 'done';
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -119,52 +132,33 @@ export default function ScreenResults() {
         </View>
 
         <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>
-          Analysis · Pediatrics
+          Analysis · {FRAMES[analysis?.field]?.label || analysis?.field || 'Loading'}
         </Text>
         <Text style={{ fontFamily: RGF.display, fontSize: 32, lineHeight: 34, letterSpacing: -0.9, color: RGF.ink, marginBottom: 18 }}>
-          GLP-1 agonists for{'\n'}pediatric <Text style={{ fontStyle: 'italic' }}>obesity</Text>
+          {analysis?.topic || 'Loading...'}
         </Text>
 
-        <StreamStatus />
+        {isPending && <StreamStatus />}
 
         <View style={{ gap: 12 }}>
-          <GapCard
-            rank={1}
-            color={RGF.sky}
-            category="future-work"
-            novelty={9}
-            feas={7}
-            title="Long-term cardiometabolic safety under age 12"
-            desc="No RCTs track outcomes beyond 18 months in children <12. Five trials explicitly flag this as the critical unknown."
-            evidence={[
-              { quote: '…future studies should examine outcomes beyond 2 years in pre-adolescent populations…', year: 2024, authors: 'Nelson et al.' },
-              { quote: '…long-term cardiovascular safety data in children under 12 remain unavailable…', year: 2025, authors: 'Park, Rivera, Kaur' },
-            ]}
-            onPress={() => router.push('/analyze/detail')}
-          />
-          <GapCard
-            rank={2}
-            color={RGF.lavender}
-            category="pico"
-            novelty={8}
-            feas={9}
-            title="Dose-response in adolescents with Down syndrome"
-            desc="PICO analysis surfaces zero studies where population = trisomy-21 and intervention = semaglutide; 47 studies in adjacent populations."
-            collapsed
-            onPress={() => router.push('/paywall')}
-          />
-          <GapCard
-            rank={3}
-            color={RGF.butter}
-            category="llm"
-            novelty={7}
-            feas={8}
-            title="Adherence behaviors in rural vs. urban teens"
-            desc="Cross-cluster synthesis: adherence modelled only in urban US cohorts (N=14) vs. rural (N=0)."
-            collapsed
-            onPress={() => router.push('/paywall')}
-          />
-          <GapCardPending rank={4} />
+          {allGaps.map((g: any) => {
+            const frameColor = (RGF as any)[FRAMES[analysis?.field]?.rows[0]?.color || 'lavender'];
+            return (
+              <GapCard
+                key={g.id}
+                rank={g.rank}
+                color={frameColor}
+                category={g.category}
+                novelty={g.novelty_score}
+                feas={g.feasibility_score}
+                title={g.title}
+                desc={g.description}
+                evidence={g.evidence || []}
+                onPress={() => router.push(`/analyze/detail?gapId=${g.id}`)}
+              />
+            );
+          })}
+          {isPending && <GapCardPending rank={allGaps.length + 1} />}
         </View>
         <View style={{ height: 40 }} />
       </ScrollView>

@@ -1,16 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
-
-const FIELDS = [
-  { id: 'medicine', label: 'Medicine' },
-  { id: 'cs', label: 'Computer Science' },
-  { id: 'econ', label: 'Economics' },
-  { id: 'psych', label: 'Psychology' },
-];
+import { FieldClusterModal } from '../../components/FieldClusterModal';
+import { FRAMES, QUICK_FIELDS } from '../../lib/fields/frames';
+import { fetchApi } from '../../lib/api/client';
+import { isMockMode } from '../../lib/mocks';
 
 function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch, onPress }: any) {
   const { RGF } = useTheme();
@@ -35,9 +32,8 @@ function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch,
   );
 }
 
-function FrameRow({ letter, label, initialValue, color }: any) {
+function FrameRow({ letter, label, value, onChange, color }: any) {
   const { RGF } = useTheme();
-  const [value, setValue] = useState(initialValue);
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -58,11 +54,11 @@ function FrameRow({ letter, label, initialValue, color }: any) {
       <View style={{ flex: 1 }}>
         <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 1 }}>{label}</Text>
         {isEditing ? (
-          <TextInput 
-            autoFocus 
-            style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.ink, padding: 0 }} 
-            value={value} 
-            onChangeText={setValue}
+          <TextInput
+            autoFocus
+            style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.ink, padding: 0 }}
+            value={value}
+            onChangeText={onChange}
             onBlur={() => setIsEditing(false)}
           />
         ) : (
@@ -85,34 +81,10 @@ export default function ScreenAnalyze() {
   const insets = useSafeAreaInsets();
   const { RGF } = useTheme();
   
-  const FRAMES: Record<string, any[]> = {
-    medicine: [
-      { letter: 'P', label: 'Population', initialValue: 'Children 6–17', color: RGF.rose },
-      { letter: 'I', label: 'Intervention', initialValue: 'Semaglutide 2.4mg', color: RGF.lavender },
-      { letter: 'C', label: 'Comparator', initialValue: 'Lifestyle only', color: RGF.mint },
-      { letter: 'O', label: 'Outcome', initialValue: 'Weight reduction', color: RGF.sky },
-    ],
-    cs: [
-      { letter: 'T', label: 'Task', initialValue: 'Image segmentation', color: RGF.rose },
-      { letter: 'D', label: 'Dataset', initialValue: 'COCO-Stuff', color: RGF.lavender },
-      { letter: 'M', label: 'Method', initialValue: 'Contrastive learning', color: RGF.mint },
-      { letter: 'M', label: 'Metric', initialValue: 'mIoU', color: RGF.sky },
-    ],
-    econ: [
-      { letter: 'T', label: 'Treatment', initialValue: 'Universal Basic Income', color: RGF.rose },
-      { letter: 'P', label: 'Population', initialValue: 'Low-income households', color: RGF.lavender },
-      { letter: 'O', label: 'Outcome', initialValue: 'Labor participation', color: RGF.mint },
-      { letter: 'I', label: 'Strategy', initialValue: 'Difference-in-differences', color: RGF.sky },
-    ],
-    psych: [
-      { letter: 'S', label: 'Sample', initialValue: 'Undergraduate students', color: RGF.rose },
-      { letter: 'P', label: 'Phenomenon', initialValue: 'Cognitive dissonance', color: RGF.lavender },
-      { letter: 'D', label: 'Design', initialValue: 'Factorial experiment', color: RGF.mint },
-      { letter: 'E', label: 'Evaluation', initialValue: 'Self-report scale', color: RGF.sky },
-    ],
-  };
-
-  const [activeField, setActiveField] = useState('medicine');
+  const [fieldSelection, setFieldSelection] = useState<{ frameId: string; openalexId?: string; label: string }>({
+    frameId: 'medicine',
+    label: FRAMES['medicine']?.label || 'Medicine'
+  });
   const [topic, setTopic] = useState('GLP-1 agonists for pediatric obesity');
   const [preprints, setPreprints] = useState(true);
   const [openAccess, setOpenAccess] = useState(false);
@@ -120,9 +92,63 @@ export default function ScreenAnalyze() {
   const [selectedYears, setSelectedYears] = useState('2019–2026');
   const [isDesignModalVisible, setDesignModalVisible] = useState(false);
   const [selectedDesign, setSelectedDesign] = useState('All');
-  
-  const activeLabel = FIELDS.find(f => f.id === activeField)?.label || 'medicine';
-  const currentFrame = FRAMES[activeField] || FRAMES['medicine'];
+  const [isFieldModalVisible, setFieldModalVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const activeLabel = fieldSelection.label;
+  const currentFrame = FRAMES[fieldSelection.frameId] || FRAMES['generic'];
+
+  // Frame values keyed by row.key ('P','I','C','O', …).
+  // Reset to the template's `example` defaults whenever the field changes.
+  const [frameValues, setFrameValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(currentFrame.rows.map(r => [r.key, r.example ?? '']))
+  );
+  useEffect(() => {
+    setFrameValues(Object.fromEntries(currentFrame.rows.map(r => [r.key, r.example ?? ''])));
+  }, [fieldSelection.frameId, fieldSelection.openalexId]);
+
+  const yearsRange = useMemo<[number, number] | undefined>(() => {
+    if (selectedYears === 'All time') return undefined;
+    const m = selectedYears.match(/(\d{4})[^\d]+(\d{4})/);
+    if (!m) return undefined;
+    return [Number(m[1]), Number(m[2])];
+  }, [selectedYears]);
+
+  async function handleSubmit() {
+    if (!topic.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const payload = {
+        topic: topic.trim(),
+        field: fieldSelection.frameId,
+        structured_frame: frameValues,
+        filters: {
+          years: yearsRange,
+          include_preprints: preprints,
+          open_access_only: openAccess,
+          study_designs: selectedDesign === 'All' ? undefined : [selectedDesign],
+        },
+        concept_id: fieldSelection.openalexId,
+      };
+
+      if (isMockMode) {
+        router.push('/analyze/results?id=mock-1');
+        return;
+      }
+
+      const res = await fetchApi('/v1/analyses', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      if (!res?.id) throw new Error('missing analysis id');
+      router.push(`/analyze/results?id=${encodeURIComponent(res.id)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to start analysis';
+      Alert.alert('Could not start analysis', msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -135,21 +161,34 @@ export default function ScreenAnalyze() {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 22, height: 36, marginBottom: 20 }} style={{ marginHorizontal: -22, paddingHorizontal: 22 }}>
-          {FIELDS.map((f, i) => {
-            const isActive = activeField === f.id;
+          {QUICK_FIELDS.map((fId) => {
+            const frame = FRAMES[fId];
+            if (!frame) return null;
+            const isActive = fieldSelection.frameId === fId && !fieldSelection.openalexId;
             return (
-              <TouchableOpacity key={f.id} onPress={() => setActiveField(f.id)} activeOpacity={0.7} style={{
+              <TouchableOpacity key={fId} onPress={() => setFieldSelection({ frameId: fId, label: frame.label })} activeOpacity={0.7} style={{
                 paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99,
                 backgroundColor: isActive ? RGF.ink : RGF.surface,
                 borderWidth: 1, borderColor: isActive ? RGF.ink : RGF.hair,
                 justifyContent: 'center',
               }}>
                 <Text style={{ fontFamily: isActive ? RGF.sansMedium : RGF.sans, fontSize: 13, color: isActive ? RGF.bg : RGF.ink }}>
-                  {f.label}
+                  {frame.label}
                 </Text>
               </TouchableOpacity>
             )
           })}
+          <TouchableOpacity onPress={() => setFieldModalVisible(true)} activeOpacity={0.7} style={{
+            paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99,
+            backgroundColor: (fieldSelection.openalexId || !QUICK_FIELDS.includes(fieldSelection.frameId as any)) ? RGF.ink : RGF.surface,
+            borderWidth: 1, borderColor: (fieldSelection.openalexId || !QUICK_FIELDS.includes(fieldSelection.frameId as any)) ? RGF.ink : RGF.hair,
+            justifyContent: 'center', flexDirection: 'row', alignItems: 'center', gap: 6,
+          }}>
+            <Icon name="sparkle" size={12} color={(fieldSelection.openalexId || !QUICK_FIELDS.includes(fieldSelection.frameId as any)) ? RGF.bg : RGF.ink} />
+            <Text style={{ fontFamily: (fieldSelection.openalexId || !QUICK_FIELDS.includes(fieldSelection.frameId as any)) ? RGF.sansMedium : RGF.sans, fontSize: 13, color: (fieldSelection.openalexId || !QUICK_FIELDS.includes(fieldSelection.frameId as any)) ? RGF.bg : RGF.ink }}>
+              More fields
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
 
         <Text style={{ fontFamily: RGF.display, fontSize: 42, lineHeight: 43, letterSpacing: -1.3, color: RGF.ink, marginBottom: 26 }}>
@@ -191,8 +230,15 @@ export default function ScreenAnalyze() {
           </View>
           
           <View style={{ gap: 10 }}>
-            {currentFrame.map((r, idx) => (
-              <FrameRow key={`${activeField}-${idx}`} {...r} />
+            {currentFrame.rows.map((r, idx) => (
+              <FrameRow
+                key={`${fieldSelection.frameId}-${fieldSelection.openalexId}-${idx}`}
+                letter={r.key}
+                label={r.label}
+                value={frameValues[r.key] ?? ''}
+                onChange={(v: string) => setFrameValues(prev => ({ ...prev, [r.key]: v }))}
+                color={(RGF as any)[r.color]}
+              />
             ))}
           </View>
         </View>
@@ -206,16 +252,22 @@ export default function ScreenAnalyze() {
         </View>
 
         {/* CTA */}
-        <TouchableOpacity 
+        <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => router.push('/analyze/results')}
+          onPress={handleSubmit}
+          disabled={submitting || !topic.trim()}
           style={{
             backgroundColor: RGF.ink, borderRadius: 28, padding: 20,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            opacity: (submitting || !topic.trim()) ? 0.55 : 1,
           }}>
           <View>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg, letterSpacing: -0.3 }}>Find gaps</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.bg, opacity: 0.6, marginTop: 2 }}>≈ 45 sec · 500 papers</Text>
+            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg, letterSpacing: -0.3 }}>
+              {submitting ? 'Starting…' : 'Find gaps'}
+            </Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.bg, opacity: 0.6, marginTop: 2 }}>
+              ≈ 45 sec · 500 papers
+            </Text>
           </View>
           <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: RGF.bg, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="arrow" size={20} color={RGF.ink} />
@@ -264,6 +316,12 @@ export default function ScreenAnalyze() {
           </View>
         </View>
       </Modal>
+
+      <FieldClusterModal 
+        visible={isFieldModalVisible} 
+        onClose={() => setFieldModalVisible(false)} 
+        onSelect={(sel) => { setFieldSelection(sel); setFieldModalVisible(false); }} 
+      />
     </View>
   );
 }

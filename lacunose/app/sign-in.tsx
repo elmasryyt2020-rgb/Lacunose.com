@@ -6,14 +6,25 @@ import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
 import { Logo } from '../components/Logo';
 import Svg, { Path } from 'react-native-svg';
+import { useAuth } from '../hooks/useAuth';
 
 export default function ScreenSignIn() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { RGF } = useTheme();
 
-  const handleHome = () => {
-    router.replace('/(tabs)/home');
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth();
+  const [email, setEmail] = React.useState('');
+
+  const handleSignIn = async () => {
+    if (!email) return;
+    try {
+      await signIn(email);
+      // typed routes haven't regenerated for the new sign-up-otp file yet
+      router.push(`/sign-up-otp?email=${encodeURIComponent(email)}` as any);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -40,32 +51,24 @@ export default function ScreenSignIn() {
             style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }}
             placeholder="Email address"
             placeholderTextColor={RGF.muted}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
-        </View>
-        <View style={[styles.inputBox, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
-          <Icon name="lock" size={18} color={RGF.muted} />
-          <TextInput 
-            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }}
-            placeholder="Password"
-            placeholderTextColor={RGF.muted}
-            secureTextEntry
-          />
-          <Icon name="eye" size={18} color={RGF.muted} />
         </View>
       </View>
 
-      <TouchableOpacity style={{ alignSelf: 'flex-end', marginBottom: 22, paddingVertical: 4 }}>
-        <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.inkSoft }}>
-          Forgot password?
-        </Text>
-      </TouchableOpacity>
+      <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted, marginBottom: 22, textAlign: 'right' }}>
+        We'll email you a 6-digit code.
+      </Text>
 
       <TouchableOpacity 
-        activeOpacity={0.8} onPress={handleHome}
+        activeOpacity={0.8} onPress={handleSignIn}
         style={{
           backgroundColor: RGF.ink, borderRadius: 22, paddingVertical: 16, alignItems: 'center', marginBottom: 22
         }}>
-        <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 15, color: RGF.bg }}>Sign in</Text>
+        <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 15, color: RGF.bg }}>Send Code</Text>
       </TouchableOpacity>
 
       {/* divider */}
@@ -77,7 +80,7 @@ export default function ScreenSignIn() {
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <TouchableOpacity 
-          onPress={handleHome} activeOpacity={0.8}
+          onPress={() => signInWithGoogle().catch(console.error)} activeOpacity={0.8}
           style={{ flex: 1, backgroundColor: RGF.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <Svg width="18" height="18" viewBox="0 0 24 24">
             <Path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -89,7 +92,7 @@ export default function ScreenSignIn() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          onPress={handleHome} activeOpacity={0.8}
+          onPress={() => signInWithApple().catch(console.error)} activeOpacity={0.8}
           style={{ flex: 1, backgroundColor: RGF.ink, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <Svg width="18" height="18" viewBox="0 0 24 24" fill={RGF.bg}>
             <Path d="M17.05 12.04c-.03-3.16 2.58-4.68 2.7-4.75-1.47-2.15-3.76-2.44-4.57-2.48-1.95-.2-3.8 1.15-4.79 1.15-.99 0-2.51-1.12-4.13-1.09-2.12.03-4.09 1.23-5.19 3.13-2.21 3.84-.56 9.52 1.6 12.63 1.05 1.52 2.3 3.22 3.94 3.16 1.58-.06 2.18-1.02 4.08-1.02 1.9 0 2.44 1.02 4.11.99 1.7-.03 2.77-1.54 3.81-3.07 1.2-1.76 1.69-3.47 1.72-3.56-.04-.02-3.29-1.26-3.32-5.01zM13.98 3.3C14.85 2.24 15.43.78 15.27-.67c-1.24.05-2.73.82-3.63 1.87-.8.93-1.51 2.41-1.32 3.83 1.38.11 2.79-.7 3.66-1.73z"/>

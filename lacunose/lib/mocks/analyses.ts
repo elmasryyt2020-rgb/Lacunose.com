@@ -1,0 +1,10 @@
+export const mockAnalyses = [
+  { id: '1', user_id: 'user', topic: 'GLP-1 in pediatrics', field: 'medicine', structured_frame: {}, filters: {}, status: 'done', created_at: new Date().toISOString(), completed_at: new Date().toISOString(), gap_items: [{count: 6}] },
+  { id: '2', user_id: 'user', topic: 'Transformer alternatives', field: 'computer-science', structured_frame: {}, filters: {}, status: 'done', created_at: new Date(Date.now()-86400000).toISOString(), completed_at: new Date(Date.now()-86400000).toISOString(), gap_items: [{count: 4}] },
+  { id: '3', user_id: 'user', topic: 'Universal basic income', field: 'economics', structured_frame: {}, filters: {}, status: 'done', created_at: new Date(Date.now()-86400000*2).toISOString(), completed_at: new Date(Date.now()-86400000*2).toISOString(), gap_items: [{count: 5}] },
+  { id: '4', user_id: 'user', topic: 'Cognitive behavioral therapy', field: 'psychology', structured_frame: {}, filters: {}, status: 'done', created_at: new Date(Date.now()-86400000*3).toISOString(), completed_at: new Date(Date.now()-86400000*3).toISOString(), gap_items: [{count: 6}] },
+  { id: '5', user_id: 'user', topic: 'CRISPR off-target effects', field: 'biology', structured_frame: {}, filters: {}, status: 'done', created_at: new Date(Date.now()-86400000*4).toISOString(), completed_at: new Date(Date.now()-86400000*4).toISOString(), gap_items: [{count: 3}] },
+  { id: '6', user_id: 'user', topic: 'Moral realism', field: 'philosophy', structured_frame: {}, filters: {}, status: 'done', created_at: new Date(Date.now()-86400000*5).toISOString(), completed_at: new Date(Date.now()-86400000*5).toISOString(), gap_items: [{count: 5}] },
+  { id: '7', user_id: 'user', topic: 'LLM agents', field: 'computer-science', structured_frame: {}, filters: {}, status: 'running', created_at: new Date().toISOString(), gap_items: [{count: 0}] },
+  { id: '8', user_id: 'user', topic: 'Oncology', field: 'medicine', structured_frame: {}, filters: {}, status: 'done', created_at: new Date(Date.now()-86400000*6).toISOString(), completed_at: new Date(Date.now()-86400000*6).toISOString(), gap_items: [{count: 6}] }
+];

@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../constants/theme';
+import { useEffect } from 'react';
 import { ChipIcon, Icon } from '../components/Shared';
+import { useNotifications } from '../hooks/useNotifications';
 
 function NotificationItem({ title, message, time, icon, color, isNew }: any) {
   const { RGF } = useTheme();
@@ -30,28 +32,13 @@ export default function ScreenNotifications() {
   const insets = useSafeAreaInsets();
   const { RGF, theme } = useTheme();
 
-  const data = [
-    { 
-      title: 'Synthesis complete', 
-      message: 'Your gap analysis for "Solid tumors" has finished. 12 novel spaces identified.',
-      time: '1h ago', icon: 'sparkle', color: RGF.lavender, isNew: true 
-    },
-    { 
-      title: 'Free tier unlocked', 
-      message: 'Your 3 free monthly analyses have been reset today. Go find your next gap!',
-      time: '4h ago', icon: 'clock', color: RGF.mint, isNew: true 
-    },
-    { 
-      title: 'PICO Framework Update', 
-      message: 'We added more detailed methodologies regarding pediatric cohorts.',
-      time: 'Yesterday', icon: 'flask', color: RGF.butter, isNew: false 
-    },
-    { 
-      title: 'Welcome to Lacunose', 
-      message: 'Thank you for joining. Discover areas the literature left behind.',
-      time: '3d ago', icon: 'gap', color: RGF.sky, isNew: false 
-    }
-  ];
+  const { data: notifications, isLoading, markAllRead } = useNotifications();
+
+  useEffect(() => {
+    return () => {
+      markAllRead();
+    };
+  }, [markAllRead]);
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -66,11 +53,20 @@ export default function ScreenNotifications() {
       </View>
 
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-        {data.map((item, i) => (
-          <NotificationItem key={i} {...item} />
+        {isLoading && <Text style={{ fontFamily: RGF.sans, color: RGF.muted, textAlign: 'center' }}>Loading...</Text>}
+        {notifications?.map((item: any, i: number) => (
+          <NotificationItem 
+            key={item.id || i} 
+            title={item.title} 
+            message={item.body} 
+            time={new Date(item.created_at).toLocaleDateString()} 
+            icon={item.kind === 'analysis_done' ? 'sparkle' : 'gap'} 
+            color={RGF.lavender} 
+            isNew={!item.is_read} 
+          />
         ))}
         
-        <TouchableOpacity style={{ alignSelf: 'center', marginTop: 20 }}>
+        <TouchableOpacity onPress={() => markAllRead()} style={{ alignSelf: 'center', marginTop: 20 }}>
           <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.muted }}>Mark all as read</Text>
         </TouchableOpacity>
       </ScrollView>

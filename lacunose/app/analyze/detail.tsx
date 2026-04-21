@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, CategoryPill } from '../../components/Shared';
+import { useGapItem } from '../../hooks/useGapItem';
 
 function ScoreBig({ value, label, color }: any) {
   const { RGF } = useTheme();
@@ -23,6 +24,16 @@ function ScoreBig({ value, label, color }: any) {
 export default function ScreenDetail() {
   const router = useRouter();
   const { RGF } = useTheme();
+  const { gapId } = useLocalSearchParams<{ gapId: string }>();
+  const { data: gap, isLoading } = useGapItem(gapId || '');
+
+  if (isLoading || !gap) {
+    return (
+      <View style={[styles.container, { backgroundColor: RGF.bg, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontFamily: RGF.sans, color: RGF.muted }}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -35,18 +46,18 @@ export default function ScreenDetail() {
         </View>
 
         <View style={{ marginBottom: 18 }}>
-          <CategoryPill kind="future-work" />
+          <CategoryPill kind={gap.category || 'future-work'} />
         </View>
 
         <Text style={{ fontFamily: RGF.display, fontSize: 30, lineHeight: 32, letterSpacing: -0.8, color: RGF.ink, marginBottom: 20 }}>
-          Long-term{'\n'}cardiometabolic{'\n'}safety in children{'\n'}<Text style={{ fontStyle: 'italic' }}>under twelve.</Text>
+          {gap.title}
         </Text>
 
         {/* scores */}
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 22 }}>
-          <ScoreBig value={9} label="Novelty" color={RGF.sky} />
-          <ScoreBig value={7} label="Feasibility" color={RGF.mint} />
-          <ScoreBig value={6} label="Evidence" color={RGF.butter} />
+          <ScoreBig value={gap.novelty_score || 0} label="Novelty" color={RGF.sky} />
+          <ScoreBig value={gap.feasibility_score || 0} label="Feasibility" color={RGF.mint} />
+          <ScoreBig value={gap.evidence_density || 0} label="Evidence" color={RGF.butter} />
         </View>
 
         {/* research question */}
@@ -55,7 +66,7 @@ export default function ScreenDetail() {
             Suggested research question
           </Text>
           <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 26, letterSpacing: -0.3, color: RGF.bg }}>
-            In children aged 6–11 with BMI ≥ 95th percentile, does 24-month semaglutide use alter lipid profile or HRV compared to lifestyle-only?
+            {gap.research_question}
           </Text>
         </View>
 
@@ -65,41 +76,37 @@ export default function ScreenDetail() {
             Suggested method
           </Text>
           <Text style={{ fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, lineHeight: 22, marginBottom: 10 }}>
-            Multi-center <Text style={{ fontFamily: RGF.sansSemiBold }}>prospective cohort</Text> with 24-month follow-up.
+            <Text style={{ fontFamily: RGF.sansSemiBold }}>{gap.suggested_method}</Text>
           </Text>
           <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>Est. N ≈ 180</Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>Est. N ≈ {gap.suggested_n}</Text>
             <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>·</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>3 sites</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>·</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>18–24 mo</Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>{gap.suggested_duration_months} mo</Text>
           </View>
         </View>
 
         {/* evidence panel */}
-        <View style={{ backgroundColor: RGF.surface, borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.ink, letterSpacing: -0.3 }}>Evidence</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>5 papers</Text>
-          </View>
-          {[
-            { q: '…future studies should examine outcomes beyond 2 years in pre-adolescent populations, particularly cardiovascular endpoints…', a: 'Nelson, Chen, O\'Brien', y: 2024, j: 'NEJM', s: 'discussion' },
-            { q: '…long-term cardiovascular safety data in children under 12 remain unavailable…', a: 'Park, Rivera, Kaur', y: 2025, j: 'Lancet Child Adol.', s: 'limitations' },
-            { q: '…trials to date have not been powered to detect cardiometabolic events in this age group…', a: 'Otieno et al.', y: 2023, j: 'Pediatrics', s: 'limitations' },
-          ].map((e, i) => (
-            <View key={i} style={{ paddingTop: 12, paddingBottom: 12, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: RGF.hair }}>
-              <Text style={{ fontFamily: RGF.display, fontSize: 15, lineHeight: 21, color: RGF.ink, fontStyle: 'italic', marginBottom: 8 }}>
-                "{e.q}"
-              </Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted }}>{e.a} · <Text style={{ fontStyle: 'italic' }}>{e.j}</Text> · {e.y}</Text>
-                <View style={{ paddingVertical: 3, paddingHorizontal: 8, borderRadius: 99, backgroundColor: RGF.bg }}>
-                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.inkSoft, letterSpacing: 0.4, textTransform: 'uppercase' }}>{e.s}</Text>
+        {(gap.evidence || []).length > 0 && (
+          <View style={{ backgroundColor: RGF.surface, borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.ink, letterSpacing: -0.3 }}>Evidence</Text>
+              <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>{(gap.evidence || []).length} papers</Text>
+            </View>
+            {(gap.evidence || []).map((e: any, i: number) => (
+              <View key={i} style={{ paddingTop: 12, paddingBottom: 12, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: RGF.hair }}>
+                <Text style={{ fontFamily: RGF.display, fontSize: 15, lineHeight: 21, color: RGF.ink, fontStyle: 'italic', marginBottom: 8 }}>
+                  "{e.quote}"
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted }}>{e.authors} · <Text style={{ fontStyle: 'italic' }}>{e.journal}</Text> · {e.year}</Text>
+                  <View style={{ paddingVertical: 3, paddingHorizontal: 8, borderRadius: 99, backgroundColor: RGF.bg }}>
+                    <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.inkSoft, letterSpacing: 0.4, textTransform: 'uppercase' }}>{e.section || 'discussion'}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>

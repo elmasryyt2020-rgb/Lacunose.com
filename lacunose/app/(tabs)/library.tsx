@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
 import { useRouter } from 'expo-router';
+import { useAnalyses } from '../../hooks/useAnalyses';
+import { FRAMES } from '../../lib/fields/frames';
 
 export default function ScreenLibrary() {
   const router = useRouter();
@@ -12,14 +14,15 @@ export default function ScreenLibrary() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isFilterActive, setIsFilterActive] = useState(false);
 
-  const items = [
-    { topic: 'GLP-1 agonists in pediatric obesity', field: 'Current', gaps: 8, date: 'Today', color: RGF.sky },
-    { topic: 'CAR-T cell therapy in solid tumors', field: 'Current', gaps: 12, date: 'Yesterday', color: RGF.mint },
-    { topic: 'Microbiome & colorectal cancer', field: 'Archived', gaps: 6, date: 'Apr 12', color: RGF.butter },
-    { topic: "Alzheimer's biomarkers in plasma", field: 'Archived', gaps: 9, date: 'Apr 09', color: RGF.lavender },
-    { topic: 'Sepsis early warning ML', field: 'Archived', gaps: 11, date: 'Apr 02', color: RGF.peach },
-    { topic: 'Community HPV screening', field: 'Archived', gaps: 5, date: 'Mar 28', color: RGF.rose },
-  ];
+  const { data: analyses, isLoading } = useAnalyses();
+  const [activeFilter, setActiveFilter] = useState('All');
+
+  const filteredItems = (analyses || []).filter((a: any) => {
+    if (activeFilter === 'All') return true;
+    if (activeFilter === 'Saved') return a.gap_items?.some((g: any) => g.saved); // mock logic for saved
+    if (activeFilter === 'Archived') return false; // mockup
+    return FRAMES[a.field]?.label === activeFilter || a.field === activeFilter;
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -49,19 +52,19 @@ export default function ScreenLibrary() {
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>
-            {items.length} analyses history
+            {filteredItems.length} analyses history
           </Text>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 22, height: 36, marginBottom: 24 }} style={{ marginHorizontal: -22, paddingHorizontal: 22 }}>
           {['All', 'Saved', 'Medicine', 'Computer Science', 'Archived'].map((cat, i) => (
-            <TouchableOpacity key={i} activeOpacity={0.7} style={{
+              <TouchableOpacity key={i} onPress={() => setActiveFilter(cat)} activeOpacity={0.7} style={{
               paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99,
-              backgroundColor: i === 0 ? RGF.ink : RGF.surface,
-              borderWidth: 1, borderColor: i === 0 ? RGF.ink : RGF.hair,
+              backgroundColor: activeFilter === cat ? RGF.ink : RGF.surface,
+              borderWidth: 1, borderColor: activeFilter === cat ? RGF.ink : RGF.hair,
               justifyContent: 'center',
             }}>
-              <Text style={{ fontFamily: i === 0 ? RGF.sansMedium : RGF.sans, fontSize: 13, color: i === 0 ? RGF.bg : RGF.ink }}>
+              <Text style={{ fontFamily: activeFilter === cat ? RGF.sansMedium : RGF.sans, fontSize: 13, color: activeFilter === cat ? RGF.bg : RGF.ink }}>
                 {cat}
               </Text>
             </TouchableOpacity>
@@ -69,29 +72,33 @@ export default function ScreenLibrary() {
         </ScrollView>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          {items.map((it, i) => (
-            <TouchableOpacity key={i} onPress={() => router.push('/analyze/results')} activeOpacity={0.8} style={{
-              width: '48%', backgroundColor: RGF.surface, borderRadius: 22, padding: 14,
-              borderWidth: 1, borderColor: RGF.hair, minHeight: 160,
-              justifyContent: 'space-between'
-            }}>
-              <View style={{ gap: 10 }}>
-                <View style={{
-                  width: 36, height: 36, borderRadius: 12, backgroundColor: it.color,
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Icon name="gap" size={16} color={RGF.ink} />
+          {isLoading && <Text style={{ fontFamily: RGF.sans, color: RGF.muted, padding: 20 }}>Loading...</Text>}
+          {filteredItems.map((it: any, i: number) => {
+            const frameColor = (RGF as any)[FRAMES[it.field]?.rows[0]?.color || 'lavender'];
+            return (
+              <TouchableOpacity key={it.id} onPress={() => router.push(`/analyze/results?id=${it.id}`)} activeOpacity={0.8} style={{
+                width: '48%', backgroundColor: RGF.surface, borderRadius: 22, padding: 14,
+                borderWidth: 1, borderColor: RGF.hair, minHeight: 160,
+                justifyContent: 'space-between'
+              }}>
+                <View style={{ gap: 10 }}>
+                  <View style={{
+                    width: 36, height: 36, borderRadius: 12, backgroundColor: frameColor,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name="gap" size={16} color={RGF.ink} />
+                  </View>
+                  <Text style={{ fontFamily: RGF.display, fontSize: 18, lineHeight: 20, letterSpacing: -0.3, color: RGF.ink }} numberOfLines={3}>
+                    {it.topic}
+                  </Text>
                 </View>
-                <Text style={{ fontFamily: RGF.display, fontSize: 18, lineHeight: 20, letterSpacing: -0.3, color: RGF.ink }}>
-                  {it.topic}
-                </Text>
-              </View>
-              <View style={{ marginTop: 10 }}>
-                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 }}>{it.field}</Text>
-                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.inkSoft }}>{it.gaps} gaps · {it.date}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={{ marginTop: 10 }}>
+                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>{FRAMES[it.field]?.label || it.field}</Text>
+                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.inkSoft }}>{it.gap_items?.[0]?.count || 0} gaps · {new Date(it.created_at).toLocaleDateString()}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
         <View style={{ height: 100 }} />
       </ScrollView>

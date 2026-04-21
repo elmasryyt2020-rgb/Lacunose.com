@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, ScoreDial, CategoryPill } from '../../components/Shared';
+import { useAnalyses } from '../../hooks/useAnalyses';
+import { FRAMES } from '../../lib/fields/frames';
 
 function RecentCard({ topic, gap, novelty, category, color }: any) {
   const { RGF } = useTheme();
@@ -21,6 +23,11 @@ function RecentCard({ topic, gap, novelty, category, color }: any) {
           <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.inkSoft, marginTop: 4 }} numberOfLines={1}>
             From: {topic}
           </Text>
+          {status !== 'done' && (
+            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.muted, marginTop: 4 }}>
+              Status: {status}
+            </Text>
+          )}
         </View>
       </View>
       
@@ -47,11 +54,7 @@ export default function ScreenHome() {
     }
   };
 
-  const recent = [
-    { topic: 'Pediatric obesity', gap: 'Long-term cardiometabolic safety under age 12', novelty: 9, category: 'future-work', color: RGF.sky },
-    { topic: 'Solid tumors', gap: 'Efficacy combinations in late-stage variants', novelty: 7, category: 'pico', color: RGF.lavender },
-    { topic: 'Microbiome', gap: 'Standardized sampling methodologies', novelty: 8, category: 'methodology', color: RGF.mint },
-  ];
+  const { data: analyses, isLoading } = useAnalyses({ limit: 3 });
 
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
@@ -131,9 +134,29 @@ export default function ScreenHome() {
         </View>
 
         <View style={{ gap: 14 }}>
-          {recent.map((r, i) => (
-            <RecentCard key={i} {...r} />
-          ))}
+          {isLoading && <Text style={{ fontFamily: RGF.sans, color: RGF.muted, textAlign: 'center', padding: 20 }}>Loading...</Text>}
+          {!isLoading && analyses?.length === 0 && (
+            <View style={{ alignItems: 'center', padding: 40, gap: 12 }}>
+              <Text style={{ fontFamily: RGF.sans, color: RGF.muted }}>No analyses yet</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/analyze')} style={{ backgroundColor: RGF.ink, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 16 }}>
+                <Text style={{ fontFamily: RGF.sansMedium, color: RGF.bg }}>Analyze something</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {analyses?.map((a: any, i: number) => {
+            const frameColor = (RGF as any)[FRAMES[a.field]?.rows[0]?.color || 'lavender'];
+            return (
+              <RecentCard 
+                key={a.id} 
+                topic={a.topic} 
+                gap={a.gap_items?.[0]?.title || 'Analysis in progress...'} 
+                novelty={a.gap_items?.[0]?.novelty_score || 0} 
+                category={a.gap_items?.[0]?.category || 'methodology'} 
+                color={frameColor} 
+                status={a.status}
+              />
+            );
+          })}
         </View>
 
         <View style={{ height: 100 }} />

@@ -50,6 +50,7 @@ export function Icon({ name, size = 20, color, stroke = 1.6 }: { name: string, s
     case 'eye': paths = <><Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" {...p}/><Circle cx="12" cy="12" r="3" {...p}/></>; break;
     case 'lock': paths = <><Rect x="5" y="11" width="14" height="10" rx="2" {...p}/><Path d="M7 11V7a5 5 0 0110 0v4" {...p}/></>; break;
     case 'phone': paths = <><Path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" {...p}/></>; break;
+    case 'refresh': paths = <><Path d="M4 4v5h.58A7.99 7.99 0 0012 4a8 8 0 018 8 8 8 0 01-14.93 4" {...p}/><Path d="M4 9h5" {...p}/></>; break;
   }
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -132,6 +133,10 @@ export function CategoryPill({ kind }: { kind: string }) {
     'llm': { bg: RGF.butter, label: 'AI synthesis' },
     'geography': { bg: RGF.peach, label: 'Geography' },
     'population': { bg: RGF.rose, label: 'Population' },
+    'coverage': { bg: RGF.lavender, label: 'Coverage' },
+    'contradiction': { bg: RGF.rose, label: 'Contradiction' },
+    'intersection': { bg: RGF.sage, label: 'Intersection' },
+    'temporal': { bg: RGF.sky, label: 'Temporal' },
   };
   const c = map[kind] || map['methodology'];
   return (

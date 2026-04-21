@@ -4,20 +4,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
+import { useSupportThread } from '../hooks/useSupportThread';
 
 export default function ScreenSupport() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { RGF } = useTheme();
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Hi Seif! How can we help you with your Lacunose workspace today?", isUser: false, time: '10:00 AM' }
-  ]);
+  const { messages, sendMessage: sendReply, sendingIds } = useSupportThread();
   const [input, setInput] = useState('');
 
-  const sendMessage = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
-    setMessages([...messages, { id: Date.now(), text: input, isUser: true, time: 'Now' }]);
+    const txt = input;
     setInput('');
+    await sendReply(txt);
   };
 
   return (
@@ -37,22 +37,28 @@ export default function ScreenSupport() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ padding: 22 }} showsVerticalScrollIndicator={false}>
-          {messages.map(m => (
-            <View key={m.id} style={{ alignItems: m.isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
-              <View style={{
-                maxWidth: '80%', padding: 16, borderRadius: 24,
-                backgroundColor: m.isUser ? RGF.ink : RGF.surface,
-                borderWidth: m.isUser ? 0 : 1, borderColor: RGF.hair,
-                borderBottomRightRadius: m.isUser ? 8 : 24,
-                borderBottomLeftRadius: m.isUser ? 24 : 8,
-              }}>
-                <Text style={{ fontFamily: RGF.sans, fontSize: 15, lineHeight: 22, color: m.isUser ? RGF.bg : RGF.ink }}>
-                  {m.text}
+          {messages.map(m => {
+            const isSending = sendingIds?.has(m.id);
+            return (
+              <View key={m.id} style={{ alignItems: m.is_user ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
+                <View style={{
+                  maxWidth: '80%', padding: 16, borderRadius: 24,
+                  backgroundColor: m.is_user ? RGF.ink : RGF.surface,
+                  borderWidth: m.is_user ? 0 : 1, borderColor: RGF.hair,
+                  borderBottomRightRadius: m.is_user ? 8 : 24,
+                  borderBottomLeftRadius: m.is_user ? 24 : 8,
+                  opacity: isSending ? 0.5 : 1
+                }}>
+                  <Text style={{ fontFamily: RGF.sans, fontSize: 15, lineHeight: 22, color: m.is_user ? RGF.bg : RGF.ink }}>
+                    {m.body}
+                  </Text>
+                </View>
+                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, marginTop: 6, opacity: 0.6 }}>
+                  {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
-              <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, marginTop: 6, opacity: 0.6 }}>{m.time}</Text>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
 
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(20, insets.bottom), paddingTop: 10, backgroundColor: RGF.bg }}>
@@ -65,7 +71,7 @@ export default function ScreenSupport() {
               value={input}
               onChangeText={setInput}
             />
-            <TouchableOpacity onPress={sendMessage} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: RGF.sky, alignItems: 'center', justifyContent: 'center', marginLeft: 10 }}>
+            <TouchableOpacity onPress={handleSend} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: RGF.sky, alignItems: 'center', justifyContent: 'center', marginLeft: 10 }}>
               <Icon name="arrow" size={14} color={RGF.ink} />
             </TouchableOpacity>
           </View>

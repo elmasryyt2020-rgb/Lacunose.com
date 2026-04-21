@@ -1,0 +1,79 @@
+# Caddy reverse proxy for Lacunose.
+# Let's Encrypt automatic HTTPS for all three hostnames.
+
+{
+    email hello@lacunose.com
+    # Uncomment for staging:
+    # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# Supabase gateway — PostgREST + GoTrue + Realtime + Storage + Studio
+api.lacunose.com {
+    encode zstd gzip
+
+    # Studio is dangerous to expose; allowlist only Seif's IP.
+    @studio path /project/* /_next/* /studio/*
+    handle @studio {
+        @allowed client_ip {$SEIF_IP:0.0.0.0/0}
+        handle @allowed {
+            reverse_proxy host.docker.internal:8000
+        }
+        respond 403
+    }
+
+    # Public Supabase endpoints (auth, rest, realtime, storage)
+    reverse_proxy host.docker.internal:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /data/log/api.log {
+            roll_size 10mb
+            roll_keep 10
+        }
+        format json
+    }
+}
+
+# Our Fastify edge-fn cluster (PM2)
+fn.lacunose.com {
+    encode zstd gzip
+
+    reverse_proxy host.docker.internal:4000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        transport http {
+            keepalive 30s
+            keepalive_idle_conns 100
+        }
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /data/log/fn.log {
+            roll_size 10mb
+            roll_keep 10
+        }
+        format json
+    }
+}
+
+# Marketing + privacy/terms static pages
+lacunose.com, www.lacunose.com {
+    encode zstd gzip
+    root * /srv/public
+    try_files {path} {path}.html /index.html
+    file_server
+}

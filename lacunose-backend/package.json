@@ -1,0 +1,59 @@
+{
+  "name": "lacunose-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "edge-fn": "tsx watch src/edge/app.ts",
+    "worker-ingest": "tsx watch src/workers/ingest.ts",
+    "worker-parse": "tsx watch src/workers/parse.ts",
+    "worker-embed": "tsx watch src/workers/embed.ts",
+    "worker-gap": "tsx watch src/workers/gap.ts",
+    "worker-critique": "tsx watch src/workers/critique.ts",
+    "worker-support": "tsx watch src/workers/support.ts",
+    "seed:concepts": "tsx infra/scripts/seed-concepts.ts",
+    "migrate": "tsx infra/scripts/migrate.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "bullmq": "^5.25.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.0",
+    "fastify-plugin": "^4.5.1",
+    "@fastify/cors": "^9.0.1",
+    "@fastify/rate-limit": "^9.1.0",
+    "@fastify/sensible": "^5.6.0",
+    "hdbscan-ts": "^1.0.0",
+    "imapflow": "^1.0.171",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "mailparser": "^3.7.1",
+    "markdown-it": "^14.1.0",
+    "nodemailer": "^6.9.15",
+    "openai": "^4.68.0",
+    "p-limit": "^6.1.0",
+    "pg": "^8.13.0",
+    "postmark": "^4.0.5",
+    "undici": "^6.19.8",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/mailparser": "^3.4.4",
+    "@types/node": "^20.14.11",
+    "@types/nodemailer": "^6.4.15",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.1"
+  }
+}

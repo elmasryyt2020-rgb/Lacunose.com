@@ -1,0 +1,54 @@
+# docker-compose overlay for Lacunose backend-side services.
+#
+# Usage:
+#   Stored alongside the existing Supabase self-hosted compose file.
+#   docker compose -f /path/to/supabase-docker-compose.yml \
+#                  -f /home/deploy/lacunose-backend/infra/docker-compose.override.yml \
+#                  up -d redis caddy
+#
+# Only adds: Redis (BullMQ + cache + rate-limit) and Caddy (HTTPS reverse proxy).
+# Supabase stack is left as-is; we attach to the same docker network.
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 900 1
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - lacunose
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - lacunose
+
+volumes:
+  redis-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  lacunose:
+    external: true
+    name: supabase_default
