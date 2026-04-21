@@ -1,0 +1,376 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Research Gap Finder — Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #E6E3DC; font-family: 'Inter', system-ui, sans-serif; color: #0E0E0C; }
+  * { box-sizing: border-box; }
+  em { font-style: italic; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="components/shared.jsx"></script>
+<script type="text/babel" src="components/logo.jsx"></script>
+<script type="text/babel" src="components/screen-home.jsx"></script>
+<script type="text/babel" src="components/screen-analyze.jsx"></script>
+<script type="text/babel" src="components/screen-results.jsx"></script>
+<script type="text/babel" src="components/screen-extras.jsx"></script>
+<script type="text/babel" src="components/screen-auth.jsx"></script>
+<script type="text/babel" src="components/logo-showcase.jsx"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#F1EEE8">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#F1EEE8"/>
+    <g transform="translate(420, 340)">
+      <rect x="0" y="0" width="120" height="8" rx="4" fill="#0E0E0C"/>
+      <circle cx="180" cy="4" r="40" fill="#F5EBB8" stroke="#0E0E0C" stroke-width="6"/>
+      <rect x="240" y="0" width="120" height="8" rx="4" fill="#0E0E0C"/>
+    </g>
+    <text x="600" y="520" text-anchor="middle" font-family="Georgia, serif" font-size="54" font-style="italic" fill="#0E0E0C">Research Gap Finder</text>
+  </svg>
+</template>
+<div id="root"></div>
+<script type="text/babel">
+
+// ── Tweakable defaults ─────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "appName": "Lacuna",
+  "accentPalette": "vivid",
+  "displayFont": "Fraunces",
+  "showSystem": true,
+  "showLogoPanel": true,
+  "showNames": true
+}/*EDITMODE-END*/;
+
+// Palette options
+const PALETTES = {
+  warm: { bg: '#F1EEE8', sky: '#CFE0EA', mint: '#D7E8D4', lavender: '#E2D9EE', butter: '#F5EBB8', peach: '#F5D9C8', rose: '#ECD1D1' },
+  cool: { bg: '#EDF1F2', sky: '#BED6E2', mint: '#C9E1CC', lavender: '#D4C9E5', butter: '#EBE0A6', peach: '#EDC9B6', rose: '#E3BFBF' },
+  mono: { bg: '#EFEFED', sky: '#D6D9DD', mint: '#DADDD5', lavender: '#D9D4DD', butter: '#E8E1C8', peach: '#DDD2CA', rose: '#DACCCC' },
+  vivid: { bg: '#F1EEE8', sky: '#A4C8DC', mint: '#B5D9B2', lavender: '#C8B6D9', butter: '#F2E289', peach: '#F4BFA0', rose: '#E2A7A7' },
+};
+
+const FONT_STACK = {
+  'Instrument Serif': '"Instrument Serif", "Times New Roman", serif',
+  'Fraunces':         '"Fraunces", "Times New Roman", serif',
+  'Georgia':          'Georgia, "Times New Roman", serif',
+};
+
+function applyTweaks(t) {
+  const p = PALETTES[t.accentPalette] || PALETTES.warm;
+  Object.assign(RGF, p);
+  RGF.display = FONT_STACK[t.displayFont] || FONT_STACK['Instrument Serif'];
+  document.body.style.background = p.bg === '#F1EEE8' ? '#E6E3DC' : p.bg;
+}
+
+function Phone({ children, label, showNav = true, navActive = 'home' }) {
+  return (
+    <DCArtboard label={label} width={402} height={874} style={{ borderRadius: 48, background: RGF.bg, overflow: 'hidden', position: 'relative' }}>
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <IOSStatusBar dark={false} />
+      </div>
+      <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
+      {showNav && <FloatingNav active={navActive}/>}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none',
+      }}>
+        <div style={{ width: 139, height: 5, borderRadius: 100, background: 'rgba(0,0,0,0.25)' }}/>
+      </div>
+    </DCArtboard>
+  );
+}
+
+function Cover({ appName }) {
+  return (
+    <div style={{
+      width: 402, flexShrink: 0, padding: '40px 30px',
+      display: 'flex', flexDirection: 'column', gap: 24, justifyContent: 'center',
+      height: 874,
+    }}>
+      <div style={{ fontFamily: RGF.mono, fontSize: 11, letterSpacing: 2, color: RGF.muted, textTransform: 'uppercase' }}>
+        App design — April 2026
+      </div>
+      <div style={{ fontFamily: RGF.display, fontSize: 64, lineHeight: 0.95, letterSpacing: -2, color: RGF.ink, fontWeight: 400 }}>
+        {appName}<span style={{ fontStyle: 'italic' }}>.</span>
+      </div>
+      <div style={{ fontSize: 16, color: RGF.inkSoft, lineHeight: 1.5, maxWidth: 320 }}>
+        A medical-literature gap-finder. Mobile-first, 11 screens across onboarding, exploration and library.
+      </div>
+      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {[
+          ['01', 'Get started'],
+          ['02–05', 'Onboarding — guided first exploration'],
+          ['06', 'Sign up — Google / Apple / Email'],
+          ['07', 'Sign in — email & social'],
+          ['08', 'Home'],
+          ['09', 'Analyze'],
+          ['10', 'Streaming results'],
+          ['11', 'Gap detail'],
+          ['12', 'Library'],
+          ['13', 'Paywall'],
+        ].map(([n, t]) => (
+          <div key={n} style={{ display: 'flex', gap: 14, fontSize: 14, color: RGF.inkSoft, borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: 10 }}>
+            <span style={{ fontFamily: RGF.mono, color: RGF.muted, minWidth: 56 }}>{n}</span>
+            <span>{t}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SystemPanel() {
+  const swatches = [
+    ['Sky', RGF.sky, 'future-work'],
+    ['Mint', RGF.mint, 'methodology'],
+    ['Lavender', RGF.lavender, 'PICO'],
+    ['Butter', RGF.butter, 'AI synthesis'],
+    ['Peach', RGF.peach, 'geography'],
+    ['Rose', RGF.rose, 'population'],
+  ];
+  return (
+    <div style={{
+      width: 820, flexShrink: 0, background: '#fff', borderRadius: 28, padding: 36,
+      border: `1px solid ${RGF.hair}`, fontFamily: RGF.sans,
+    }}>
+      <div style={{ fontFamily: RGF.mono, fontSize: 11, letterSpacing: 2, color: RGF.muted, textTransform: 'uppercase', marginBottom: 8 }}>Design system</div>
+      <div style={{ fontFamily: RGF.display, fontSize: 40, letterSpacing: -1, color: RGF.ink, marginBottom: 28, fontWeight: 400 }}>One system, six categories.</div>
+
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontFamily: RGF.mono, fontSize: 10, letterSpacing: 1.5, color: RGF.muted, textTransform: 'uppercase', marginBottom: 10 }}>Type</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <div style={{ fontFamily: RGF.display, fontSize: 42, letterSpacing: -1.2, color: RGF.ink, lineHeight: 1 }}>Display <em>Serif</em></div>
+            <div style={{ fontSize: 12, color: RGF.muted, marginTop: 6 }}>Headlines · Evidence quotes</div>
+          </div>
+          <div>
+            <div style={{ fontFamily: RGF.sans, fontSize: 32, fontWeight: 600, letterSpacing: -0.6, color: RGF.ink, lineHeight: 1 }}>Inter</div>
+            <div style={{ fontSize: 12, color: RGF.muted, marginTop: 6 }}>UI · Body · Labels (400–700)</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontFamily: RGF.mono, fontSize: 10, letterSpacing: 1.5, color: RGF.muted, textTransform: 'uppercase', marginBottom: 10 }}>Category palette</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+          {swatches.map(([name, c, use]) => (
+            <div key={name}>
+              <div style={{ background: c, height: 70, borderRadius: 16, marginBottom: 8 }}/>
+              <div style={{ fontSize: 12, fontWeight: 600, color: RGF.ink }}>{name}</div>
+              <div style={{ fontSize: 10, color: RGF.muted }}>{use}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div style={{ fontFamily: RGF.mono, fontSize: 10, letterSpacing: 1.5, color: RGF.muted, textTransform: 'uppercase', marginBottom: 10 }}>Building blocks</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <CategoryPill kind="future-work"/>
+          <CategoryPill kind="methodology"/>
+          <CategoryPill kind="pico"/>
+          <CategoryPill kind="llm"/>
+          <CategoryPill kind="geography"/>
+        </div>
+        <div style={{ marginTop: 18, display: 'flex', gap: 22, alignItems: 'center' }}>
+          <ScoreDial value={9} label="Novelty"/>
+          <ScoreDial value={7} label="Feasibility"/>
+          <ScoreDial value={6} label="Evidence"/>
+          <div style={{ padding: '12px 18px', borderRadius: 999, background: RGF.ink, color: '#fff', fontSize: 14, fontWeight: 500 }}>Find gaps →</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tweaks panel ───────────────────────────────────────────────────
+function TweakPanel({ tweaks, setTweaks }) {
+  if (!tweaks._editMode) return null;
+
+  const update = (patch) => {
+    const next = { ...tweaks, ...patch };
+    setTweaks(next);
+    // Only persist the persistable keys
+    const { _editMode, ...persistable } = patch;
+    if (Object.keys(persistable).length) {
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: persistable }, '*');
+    }
+  };
+
+  const Row = ({ label, children }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2, textTransform: 'uppercase' }}>{label}</div>
+      {children}
+    </div>
+  );
+
+  const Pill = ({ active, onClick, children }) => (
+    <div onClick={onClick} style={{
+      padding: '6px 12px', borderRadius: 99,
+      background: active ? '#fff' : 'rgba(255,255,255,0.1)',
+      color: active ? '#0E0E0C' : '#fff',
+      fontSize: 12, fontWeight: 500, cursor: 'pointer',
+      border: '1px solid rgba(255,255,255,0.15)',
+    }}>{children}</div>
+  );
+
+  const Toggle = ({ v, onChange }) => (
+    <div onClick={() => onChange(!v)} style={{
+      width: 36, height: 22, borderRadius: 11,
+      background: v ? '#fff' : 'rgba(255,255,255,0.2)',
+      position: 'relative', cursor: 'pointer', transition: 'all .2s',
+    }}>
+      <div style={{
+        position: 'absolute', top: 2, left: v ? 16 : 2,
+        width: 18, height: 18, borderRadius: 9, background: v ? '#0E0E0C' : '#fff',
+        transition: 'all .2s',
+      }}/>
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 20, right: 20, zIndex: 9999,
+      width: 280, background: '#0E0E0C', color: '#fff',
+      borderRadius: 20, padding: 18, fontFamily: 'Inter, system-ui, sans-serif',
+      boxShadow: '0 20px 50px rgba(0,0,0,0.35), 0 4px 10px rgba(0,0,0,0.15)',
+      border: '1px solid rgba(255,255,255,0.12)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: -0.2 }}>Tweaks</div>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Live</div>
+      </div>
+
+      <Row label="App name">
+        <input
+          type="text" value={tweaks.appName}
+          onChange={e => update({ appName: e.target.value })}
+          style={{
+            background: 'rgba(255,255,255,0.08)', color: '#fff',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 10, padding: '8px 12px', fontSize: 13,
+            fontFamily: 'inherit', outline: 'none',
+          }}
+        />
+      </Row>
+
+      <Row label="Palette">
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {Object.keys(PALETTES).map(k => (
+            <Pill key={k} active={tweaks.accentPalette === k} onClick={() => update({ accentPalette: k })}>
+              {k}
+            </Pill>
+          ))}
+        </div>
+      </Row>
+
+      <Row label="Display font">
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {Object.keys(FONT_STACK).map(f => (
+            <Pill key={f} active={tweaks.displayFont === f} onClick={() => update({ displayFont: f })}>
+              {f.split(' ')[0]}
+            </Pill>
+          ))}
+        </div>
+      </Row>
+
+      <Row label="Panels">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+            <span>Logo showcase</span>
+            <Toggle v={tweaks.showLogoPanel} onChange={v => update({ showLogoPanel: v })}/>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+            <span>Name suggestions</span>
+            <Toggle v={tweaks.showNames} onChange={v => update({ showNames: v })}/>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+            <span>System panel</span>
+            <Toggle v={tweaks.showSystem} onChange={v => update({ showSystem: v })}/>
+          </div>
+        </div>
+      </Row>
+    </div>
+  );
+}
+
+function App() {
+  const [tweaks, setTweaks] = React.useState({ ...TWEAK_DEFAULTS, _editMode: false });
+
+  React.useEffect(() => {
+    const onMessage = (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+      if (e.data.type === '__activate_edit_mode') setTweaks(t => ({ ...t, _editMode: true }));
+      if (e.data.type === '__deactivate_edit_mode') setTweaks(t => ({ ...t, _editMode: false }));
+    };
+    window.addEventListener('message', onMessage);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  applyTweaks(tweaks);
+
+  return (
+    <>
+      <DesignCanvas>
+        {tweaks.showLogoPanel && (
+          <DCSection title="Logo" subtitle="Primary mark, variants, sizing, on-dark, wordmark and app-icon">
+            <LogoShowcase appName={tweaks.appName}/>
+          </DCSection>
+        )}
+
+        {tweaks.showNames && (
+          <DCSection title="Naming" subtitle="Candidates for the app name — Lacuna is the current pick">
+            <NameSuggestions/>
+          </DCSection>
+        )}
+
+        <DCSection title="Onboarding" subtitle="Get started → guided first exploration → reveal gate → sign up / in">
+          <Cover appName={tweaks.appName}/>
+          <Phone label="01 · Get started" showNav={false}><ScreenGetStarted appName={tweaks.appName}/></Phone>
+          <Phone label="02 · Onboarding · pick topic" showNav={false}><ScreenOnboardA/></Phone>
+          <Phone label="03 · Onboarding · frame PICO" showNav={false}><ScreenOnboardB/></Phone>
+          <Phone label="04 · Onboarding · analysis" showNav={false}><ScreenOnboardC/></Phone>
+          <Phone label="05 · Onboarding · reveal gate" showNav={false}><ScreenOnboardReveal/></Phone>
+          <Phone label="06 · Sign up" showNav={false}><ScreenSignUp/></Phone>
+          <Phone label="07 · Sign in" showNav={false}><ScreenSignIn/></Phone>
+        </DCSection>
+
+        <DCSection title="Core app" subtitle="After sign-up — the full experience">
+          <Phone label="08 · Home" navActive="home"><ScreenHome/></Phone>
+          <Phone label="09 · Analyze" navActive="analyze" showNav={false}><ScreenAnalyze/></Phone>
+          <Phone label="10 · Streaming results" showNav={false}><ScreenResults/></Phone>
+          <Phone label="11 · Gap detail" showNav={false}><ScreenDetail/></Phone>
+          <Phone label="12 · Library" navActive="library"><ScreenLibrary/></Phone>
+          <Phone label="13 · Paywall" showNav={false}><ScreenPaywall/></Phone>
+        </DCSection>
+
+        {tweaks.showSystem && (
+          <DCSection title="System" subtitle="Type, palette and building blocks">
+            <SystemPanel/>
+          </DCSection>
+        )}
+      </DesignCanvas>
+      <TweakPanel tweaks={tweaks} setTweaks={setTweaks}/>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
