@@ -43,6 +43,10 @@ export function Icon({ name, size = 20, color = '#0E0E0C', stroke = 1.6 }: { nam
     case 'paperclip': paths = <><Path d="M20 11l-8 8a5 5 0 01-7-7l9-9a3.5 3.5 0 015 5l-9 9a2 2 0 01-3-3l8-8" {...p}/></>; break;
     case 'upload': paths = <><Path d="M12 20V8m0 0l-5 5m5-5l5 5M5 4h14" {...p}/></>; break;
     case 'gap': paths = <><Path d="M4 12h5M15 12h5" {...p}/><Circle cx="12" cy="12" r="3" {...p}/></>; break;
+    case 'chevL': paths = <><Path d="M15 5l-7 7 7 7" {...p}/></>; break;
+    case 'mail': paths = <><Rect x="3" y="5" width="18" height="14" rx="2" {...p}/><Path d="M3 7l9 6 9-6" {...p}/></>; break;
+    case 'eye': paths = <><Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" {...p}/><Circle cx="12" cy="12" r="3" {...p}/></>; break;
+    case 'lock': paths = <><Rect x="5" y="11" width="14" height="10" rx="2" {...p}/><Path d="M7 11V7a5 5 0 0110 0v4" {...p}/></>; break;
   }
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">

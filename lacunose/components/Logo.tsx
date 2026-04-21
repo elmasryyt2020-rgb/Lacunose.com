@@ -1,16 +1,16 @@
 import React from 'react';
 import { View } from 'react-native';
-import { RGF } from '../constants/theme';
+import Svg, { Path } from 'react-native-svg';
 
-export function Logo({ size = 56 }: { size?: number }) {
+export function Logo({ size = 48 }: { size?: number }) {
   return (
-    <View style={{
-      width: size, height: size, borderRadius: size * 0.32, backgroundColor: RGF.ink,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <View style={{ width: size * 0.4, height: size * 0.04, backgroundColor: '#fff', borderRadius: 1, marginRight: size * 0.25 }} />
-      <View style={{ width: size * 0.21, height: size * 0.21, borderRadius: size * 0.21/2, backgroundColor: RGF.butter, position: 'absolute' }} />
-      <View style={{ width: size * 0.4, height: size * 0.04, backgroundColor: '#fff', borderRadius: 1, marginLeft: size * 0.25 }} />
+    <View style={{ width: size, height: size }}>
+      <Svg viewBox="0 0 1000 1000" width="100%" height="100%">
+        <Path fill="#000000" d="m317 20h366c164.03 0 297 132.97 297 297v357c0 164.03-132.97 297-297 297h-366c-164.03 0-297-132.97-297-297v-357c0-164.03 132.97-297 297-297z"/>
+        <Path fill="#f2e289" d="m501.13 619.62c-67.8 0-122.6-54.81-122.6-122.61 0-67.8 54.8-122.6 122.6-122.6 67.8 0 122.61 54.8 122.61 122.6 0 67.8-54.81 122.61-122.61 122.61z"/>
+        <Path fill="#ffffff" d="m116.31 467.29h229.07c12.15 0 22 9.85 22 22v13.59c0 12.15-9.85 22-22 22h-229.07c-12.15 0-22-9.85-22-22v-13.59c0-12.15 9.85-22 22-22z"/>
+        <Path fill="#ffffff" d="m653.17 467.29h229.07c12.15 0 22 9.85 22 22v13.59c0 12.15-9.85 22-22 22h-229.07c-12.15 0-22-9.85-22-22v-13.59c0-12.15 9.85-22 22-22z"/>
+      </Svg>
     </View>
   );
 }

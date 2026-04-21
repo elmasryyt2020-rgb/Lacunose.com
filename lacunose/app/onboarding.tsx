@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Easing, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { RGF } from '../constants/theme';
 import { Icon, CategoryPill, ScoreDial } from '../components/Shared';
@@ -42,43 +42,31 @@ function OnboardShell({ step, total = 4, children, ctaLabel = 'Next', ctaArrow =
 }
 
 function ScreenOnboardA({ onNext }: { onNext: () => void }) {
-  const [selected, setSelected] = useState(0);
-  const suggestions = [
-    { t: 'GLP-1 in pediatric obesity', c: RGF.sky },
-    { t: 'CAR-T in solid tumors', c: RGF.mint },
-    { t: 'Microbiome & colorectal ca.', c: RGF.butter },
-    { t: 'ML for sepsis triage', c: RGF.peach },
-  ];
+  const [topic, setTopic] = useState('');
+  
   return (
-    <OnboardShell step={0} ctaLabel="Use this topic" onNext={onNext}>
+    <OnboardShell step={0} ctaLabel="Analyze topic" onNext={onNext}>
       <Text style={styles.kicker}>Step 1 of 4 · Choose a topic</Text>
       <Text style={styles.headline}>Start with what you{'\n'}<Text style={{ fontStyle: 'italic' }}>care about.</Text></Text>
-      <Text style={styles.paragraph}>Pick a seed topic. We'll pull every paper in the last 5 years and hunt for what's missing.</Text>
+      <Text style={styles.paragraph}>Enter your exact research interest. We'll pull every paper in the last 5 years and hunt for what's missing.</Text>
       
-      <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 20 }}>
-        {suggestions.map((s, i) => (
-          <TouchableOpacity 
-            key={i} activeOpacity={0.7} onPress={() => setSelected(i)}
-            style={{
-              backgroundColor: selected === i ? s.c : '#fff',
-              borderRadius: 20, padding: 16,
-              borderWidth: selected === i ? 2 : 1,
-              borderColor: selected === i ? RGF.ink : RGF.hair,
-              flexDirection: 'row', alignItems: 'center', gap: 12,
-            }}>
-            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: selected === i ? '#fff' : s.c,
-              alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="gap" size={16} color={RGF.ink} />
-            </View>
-            <Text style={{ flex: 1, fontFamily: RGF.sansMedium, fontSize: 14, color: RGF.ink }}>{s.t}</Text>
-            {selected === i && (
-              <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: RGF.ink, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="check" size={12} color="#fff" stroke={2.4} />
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={{
+        backgroundColor: '#fff', borderRadius: 26, padding: 20, minHeight: 180,
+        borderWidth: 1, borderColor: RGF.ink,
+      }}>
+        <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
+          Research interest
+        </Text>
+        <TextInput 
+          style={{ flex: 1, fontFamily: RGF.sans, fontSize: 24, lineHeight: 32, color: RGF.ink, textAlignVertical: 'top' }}
+          placeholder="e.g. Impact of GLP-1 agonists on pediatric obesity..."
+          placeholderTextColor="#C4C6CC"
+          multiline
+          autoFocus
+          value={topic}
+          onChangeText={setTopic}
+        />
+      </View>
     </OnboardShell>
   );
 }
@@ -128,55 +116,48 @@ function ScreenOnboardB({ onNext }: { onNext: () => void }) {
 }
 
 function ScreenOnboardC({ onNext }: { onNext: () => void }) {
-  const spinAnim = React.useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(spinAnim, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true })
-    ).start();
-    
-    // Auto advance after 3 seconds for simulation
+    // Auto advance after 3.5 seconds for simulation
     const timer = setTimeout(() => {
       onNext();
-    }, 3000);
+    }, 3500);
     return () => clearTimeout(timer);
   }, []);
 
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg']
-  });
+  const steps = [
+    { label: 'Fetched 512 papers', done: true },
+    { label: 'Parsed 187 full texts', done: true },
+    { label: 'Clustered into 6 sub-topics', done: true },
+    { label: 'Synthesizing gaps…', active: true },
+  ];
 
   return (
     <OnboardShell step={2} ctaLabel="Analyzing..." ctaArrow={false} onNext={() => {}}>
       <Text style={styles.kicker}>Step 3 of 4 · Synthesis in progress</Text>
       <Text style={styles.headline}>Reading everything{'\n'}<Text style={{ fontStyle: 'italic' }}>so you don't have to.</Text></Text>
 
-      <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair, marginBottom: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-          <Animated.View style={{
-            width: 48, height: 48, borderRadius: 24,
-            borderWidth: 3, borderColor: RGF.hair, borderTopColor: RGF.ink,
-            transform: [{ rotate: spin }]
-          }} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 13, color: RGF.ink }}>Clustering sub-topics</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted }}>187 of 512 papers processed</Text>
+      <View style={{ backgroundColor: '#fff', borderRadius: 22, paddingVertical: 18, paddingHorizontal: 20, marginBottom: 20, borderWidth: 1, borderColor: RGF.hair, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 13, color: RGF.ink }}>3 of 4 steps</Text>
+          <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>~20s remaining</Text>
+        </View>
+        <View style={{ height: 5, borderRadius: 2.5, backgroundColor: RGF.bg, overflow: 'hidden', marginBottom: 16 }}>
+          <View style={{ height: '100%', width: '75%', backgroundColor: RGF.ink, borderRadius: 2.5 }} />
+        </View>
+        {steps.map((s, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 }}>
+            {s.done ? (
+              <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: RGF.ink, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="check" size={10} color="#fff" stroke={2.4} />
+              </View>
+            ) : s.active ? (
+              <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: RGF.ink, borderTopColor: 'transparent' }} />
+            ) : (
+              <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: RGF.hair }} />
+            )}
+            <Text style={{ fontFamily: s.active ? RGF.sansMedium : RGF.sans, fontSize: 14, color: s.done ? RGF.muted : RGF.ink }}>{s.label}</Text>
           </View>
-          <Text style={{ fontFamily: RGF.display, fontSize: 28, color: RGF.ink, letterSpacing: -0.5 }}>37%</Text>
-        </View>
-        <View style={{ height: 4, borderRadius: 2, backgroundColor: RGF.hair, overflow: 'hidden' }}>
-          <View style={{ height: '100%', width: '37%', backgroundColor: RGF.ink, borderRadius: 2 }} />
-        </View>
-      </View>
-
-      <View style={{ backgroundColor: RGF.ink, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, flex: 1, overflow: 'hidden' }}>
-        <Text style={{ fontFamily: RGF.mono, fontSize: 11, lineHeight: 18, color: '#9FA8B8' }}>{`> Fetching PubMed + Cochrane…`}</Text>
-        <Text style={{ fontFamily: RGF.mono, fontSize: 11, lineHeight: 18, color: '#9FA8B8' }}>{`> Retrieved `}<Text style={{color: RGF.butter}}>512</Text> abstracts</Text>
-        <Text style={{ fontFamily: RGF.mono, fontSize: 11, lineHeight: 18, color: '#9FA8B8' }}>{`> Parsing full texts…`}</Text>
-        <Text style={{ fontFamily: RGF.mono, fontSize: 11, lineHeight: 18, color: '#9FA8B8' }}>{`> `}<Text style={{color: RGF.mint}}>187/512</Text> parsed</Text>
-        <Text style={{ fontFamily: RGF.mono, fontSize: 11, lineHeight: 18, color: '#9FA8B8' }}>{`> Building embedding graph…`}</Text>
-        <Text style={{ fontFamily: RGF.mono, fontSize: 11, lineHeight: 18, color: '#fff' }}>{`> Clustering `}<Text style={{color: RGF.sky}}>sub-topics</Text> ▌</Text>
+        ))}
       </View>
     </OnboardShell>
   );
@@ -255,9 +236,12 @@ function ScreenOnboardReveal() {
           <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', backgroundColor: 'rgba(241,238,232,0.85)' }} />
           
           <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair, elevation: 10, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } }}>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 }}>
-              🔒 7 more gaps waiting
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <Icon name="lock" size={14} color={RGF.muted} />
+              <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                7 more gaps waiting
+              </Text>
+            </View>
             <Text style={{ fontFamily: RGF.display, fontSize: 22, lineHeight: 24, letterSpacing: -0.4, color: RGF.ink, marginBottom: 14 }}>
               Sign up free to see full titles, novelty scores and evidence quotes.
             </Text>

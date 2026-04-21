@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { RGF } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
+import { useRouter } from 'expo-router';
 
 export default function ScreenLibrary() {
-  const [selectedFilter, setSelectedFilter] = useState('All');
-  
-  const items = [
-    { topic: 'GLP-1 agonists in pediatric obesity', field: 'Pediatrics', gaps: 8, date: 'Today', color: RGF.sky },
-    { topic: 'CAR-T cell therapy in solid tumors', field: 'Oncology', gaps: 12, date: 'Yesterday', color: RGF.mint },
-    { topic: 'Microbiome & colorectal cancer', field: 'Oncology', gaps: 6, date: 'Apr 12', color: RGF.butter },
-    { topic: "Alzheimer's biomarkers in plasma", field: 'Neurology', gaps: 9, date: 'Apr 09', color: RGF.lavender },
-    { topic: 'Sepsis early warning ML', field: 'ICU', gaps: 11, date: 'Apr 02', color: RGF.peach },
-    { topic: 'Community HPV screening', field: 'Public health', gaps: 5, date: 'Mar 28', color: RGF.rose },
-  ];
+  const router = useRouter();
 
-  const filters = ['All', 'Pediatrics', 'Oncology', 'Neurology', 'ICU'];
+  const items = [
+    { topic: 'GLP-1 agonists in pediatric obesity', field: 'Current', gaps: 8, date: 'Today', color: RGF.sky },
+    { topic: 'CAR-T cell therapy in solid tumors', field: 'Current', gaps: 12, date: 'Yesterday', color: RGF.mint },
+    { topic: 'Microbiome & colorectal cancer', field: 'Archived', gaps: 6, date: 'Apr 12', color: RGF.butter },
+    { topic: "Alzheimer's biomarkers in plasma", field: 'Archived', gaps: 9, date: 'Apr 09', color: RGF.lavender },
+    { topic: 'Sepsis early warning ML', field: 'Archived', gaps: 11, date: 'Apr 02', color: RGF.peach },
+    { topic: 'Community HPV screening', field: 'Archived', gaps: 5, date: 'Mar 28', color: RGF.rose },
+  ];
 
   return (
     <View style={styles.container}>
@@ -28,30 +27,12 @@ export default function ScreenLibrary() {
           Library
         </Text>
         <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted, marginBottom: 24 }}>
-          {items.length} analyses · 51 saved gaps
+          {items.length} analyses history
         </Text>
-
-        {/* filter chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
-          {filters.map((f, i) => (
-            <TouchableOpacity 
-              key={f} activeOpacity={0.7} onPress={() => setSelectedFilter(f)}
-              style={{
-                paddingVertical: 8, paddingHorizontal: 14, borderRadius: 99,
-                backgroundColor: selectedFilter === f ? RGF.ink : '#fff',
-                borderWidth: selectedFilter === f ? 0 : 1, borderColor: RGF.hair,
-              }}>
-              <Text style={{ 
-                fontFamily: RGF.sansMedium, fontSize: 13, 
-                color: selectedFilter === f ? '#fff' : RGF.ink 
-              }}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {items.map((it, i) => (
-            <View key={i} style={{
+            <TouchableOpacity key={i} onPress={() => router.push('/analyze/results')} activeOpacity={0.8} style={{
               width: '48%', backgroundColor: '#fff', borderRadius: 22, padding: 14,
               borderWidth: 1, borderColor: RGF.hair, minHeight: 160,
               justifyContent: 'space-between'
@@ -71,7 +52,7 @@ export default function ScreenLibrary() {
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 }}>{it.field}</Text>
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.inkSoft }}>{it.gaps} gaps · {it.date}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
         <View style={{ height: 100 }} />

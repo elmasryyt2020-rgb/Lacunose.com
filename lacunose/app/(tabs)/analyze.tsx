@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { RGF } from '../../constants/theme';
@@ -22,8 +22,6 @@ function FilterRow({ label, value, muted, last }: any) {
 
 export default function ScreenAnalyze() {
   const router = useRouter();
-  const subfields = ['Cardiology', 'Oncology', 'Neurology', 'ID', 'Surgery', 'Pediatrics'];
-  const [selectedSub, setSelectedSub] = useState('Pediatrics');
 
   return (
     <View style={styles.container}>
@@ -41,18 +39,17 @@ export default function ScreenAnalyze() {
 
         {/* topic box */}
         <View style={{
-          backgroundColor: '#fff', borderRadius: 26, padding: 20, minHeight: 150, marginBottom: 20,
+          backgroundColor: '#fff', borderRadius: 26, padding: 20, minHeight: 180, marginBottom: 28,
           borderWidth: 1, borderColor: RGF.hair,
         }}>
           <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
             Topic
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', minHeight: 54 }}>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 20, lineHeight: 28, color: RGF.ink, letterSpacing: -0.3 }}>
-              GLP-1 agonists for pediatric obesity
-            </Text>
-            <View style={{ width: 2, height: 22, backgroundColor: RGF.ink, marginLeft: 2, marginTop: 4 }} />
-          </View>
+          <TextInput 
+            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 20, lineHeight: 28, color: RGF.ink, letterSpacing: -0.3, textAlignVertical: 'top' }}
+            defaultValue="GLP-1 agonists for pediatric obesity"
+            multiline
+          />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <ChipIcon name="paperclip" size={32} iconSize={14} bg={RGF.bg} />
@@ -60,26 +57,6 @@ export default function ScreenAnalyze() {
             </View>
             <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>32 / 240</Text>
           </View>
-        </View>
-
-        {/* subfield chips */}
-        <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
-          Sub-field
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
-          {subfields.map((s) => (
-            <TouchableOpacity 
-              key={s} activeOpacity={0.7} onPress={() => setSelectedSub(s)}
-              style={{
-                paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999,
-                backgroundColor: selectedSub === s ? RGF.ink : '#fff',
-                borderWidth: selectedSub === s ? 0 : 1, borderColor: RGF.hair,
-              }}>
-              <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, letterSpacing: -0.2, color: selectedSub === s ? '#fff' : RGF.ink }}>
-                {s}
-              </Text>
-            </TouchableOpacity>
-          ))}
         </View>
 
         {/* filter toggles */}

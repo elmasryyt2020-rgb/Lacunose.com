@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { RGF } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
@@ -17,7 +17,7 @@ export default function ScreenSignIn() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ChipIcon name="chevR" size={40} iconSize={14} />
+          <ChipIcon name="chevL" size={40} iconSize={14} />
         </TouchableOpacity>
         <Logo size={36} />
       </View>
@@ -30,17 +30,22 @@ export default function ScreenSignIn() {
         Pick up where you left off.
       </Text>
 
-      {/* email / password mock */}
       <View style={{ gap: 10, marginBottom: 10 }}>
         <View style={styles.inputBox}>
-          <Icon name="note" size={18} color={RGF.muted} />
-          <Text style={{ fontFamily: RGF.sans, fontSize: 15, color: RGF.ink }}>seif@researcher.edu</Text>
+          <Icon name="mail" size={18} color={RGF.muted} />
+          <TextInput 
+            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink }}
+            defaultValue="seif@researcher.edu"
+          />
         </View>
         <View style={styles.inputBox}>
-          <Icon name="link" size={18} color={RGF.muted} />
-          <Text style={{ fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, letterSpacing: 3 }}>••••••••</Text>
-          <View style={{ flex: 1 }} />
-          <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>Show</Text>
+          <Icon name="lock" size={18} color={RGF.muted} />
+          <TextInput 
+            style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, letterSpacing: 3 }}
+            defaultValue="••••••••"
+            secureTextEntry
+          />
+          <Icon name="eye" size={18} color={RGF.muted} />
         </View>
       </View>
 

@@ -62,7 +62,9 @@ export default function ScreenHome() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* top row: question mark + bell */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-          <ChipIcon name="book" size={40} iconSize={18} />
+          <TouchableOpacity onPress={() => router.push('/(tabs)/library')}>
+            <ChipIcon name="book" size={40} iconSize={18} />
+          </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} style={{ position: 'relative' }}>
             <ChipIcon name="bell" size={40} iconSize={18} />
             <View style={{
@@ -85,11 +87,11 @@ export default function ScreenHome() {
         {/* quad of action cards */}
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
           <ActionCard color={RGF.sky} title="New topic" subtitle="Free-text search" glyph="search" onPress={() => router.push('/(tabs)/analyze')} />
-          <ActionCard color={RGF.lavender} title="Upload PDF" subtitle="Seed paper" glyph="upload" />
+          <ActionCard color={RGF.lavender} title="Upload PDF" subtitle="Seed from paper" glyph="upload" onPress={() => router.push('/(tabs)/analyze')} />
         </View>
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-          <ActionCard color={RGF.mint} title="PICO" subtitle="Clinical frame" glyph="dna" />
-          <ActionCard color={RGF.butter} title="Ask AI" subtitle="Chat a gap" glyph="sparkle" />
+          <ActionCard color={RGF.mint} title="PICO" subtitle="Clinical trial framing" glyph="dna" onPress={() => router.push('/(tabs)/analyze')} />
+          <ActionCard color={RGF.butter} title="Ask AI" subtitle="Chat about gaps" glyph="sparkle" onPress={() => router.push('/(tabs)/analyze')} />
         </View>
 
         {/* recent analyses */}
@@ -97,7 +99,7 @@ export default function ScreenHome() {
           <Text style={{ fontFamily: RGF.display, fontSize: 22, color: RGF.ink, letterSpacing: -0.4 }}>
             Recent analyses
           </Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/library')}>
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>See all</Text>
           </TouchableOpacity>
         </View>
@@ -109,22 +111,6 @@ export default function ScreenHome() {
         {/* spacer for nav bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* search / ask bar */}
-      <TouchableOpacity 
-        activeOpacity={0.9} 
-        onPress={() => router.push('/(tabs)/analyze')}
-        style={{
-          position: 'absolute', bottom: 100, left: 22, right: 22,
-          backgroundColor: '#fff', borderRadius: 28, paddingVertical: 14, paddingHorizontal: 16,
-          flexDirection: 'row', alignItems: 'center', gap: 10,
-          borderWidth: 1, borderColor: RGF.hair,
-          shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.04, shadowRadius: 16, elevation: 4,
-        }}>
-        <Icon name="search" size={18} color={RGF.muted} />
-        <Text style={{ flex: 1, fontFamily: RGF.sans, fontSize: 14, color: RGF.muted }}>Ask or search for anything</Text>
-        <ChipIcon name="mic" size={32} iconSize={14} bg={RGF.bg} color={RGF.ink} />
-      </TouchableOpacity>
     </View>
   );
 }
