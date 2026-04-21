@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { RGF } from '../../constants/theme';
+import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, CategoryPill, ScoreDial } from '../../components/Shared';
 
 function StreamStatus() {
+  const { RGF } = useTheme();
   const steps = [
     { label: 'Fetched 512 papers', done: true },
     { label: 'Parsed 187 full texts', done: true },
@@ -12,7 +13,7 @@ function StreamStatus() {
     { label: 'Synthesizing gaps…', active: true },
   ];
   return (
-    <View style={{ backgroundColor: '#fff', borderRadius: 22, paddingVertical: 16, paddingHorizontal: 18, marginBottom: 20, borderWidth: 1, borderColor: RGF.hair }}>
+    <View style={{ backgroundColor: RGF.surface, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 18, marginBottom: 20, borderWidth: 1, borderColor: RGF.hair }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 13, color: RGF.ink }}>3 of 4 steps</Text>
         <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>~20s remaining</Text>
@@ -24,7 +25,7 @@ function StreamStatus() {
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
           {s.done ? (
             <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: RGF.ink, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="check" size={10} color="#fff" stroke={2.4} />
+              <Icon name="check" size={10} color={RGF.bg} stroke={2.4} />
             </View>
           ) : s.active ? (
             <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: RGF.ink, borderTopColor: 'transparent' }} />
@@ -39,8 +40,9 @@ function StreamStatus() {
 }
 
 function GapCard({ rank, color, category, novelty, feas, title, desc, evidence = [], collapsed, onPress }: any) {
+  const { RGF } = useTheme();
   return (
-    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={{ backgroundColor: '#fff', borderRadius: 26, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
+    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={{ backgroundColor: RGF.surface, borderRadius: 26, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
         <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: color, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.ink }}>{String(rank).padStart(2, '0').charAt(1)}</Text>
@@ -84,8 +86,9 @@ function GapCard({ rank, color, category, novelty, feas, title, desc, evidence =
 }
 
 function GapCardPending({ rank }: { rank: number }) {
+  const { RGF } = useTheme();
   return (
-    <View style={{ backgroundColor: '#fff', borderRadius: 26, padding: 18, borderWidth: 1, borderColor: RGF.hair, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.7 }}>
+    <View style={{ backgroundColor: RGF.surface, borderRadius: 26, padding: 18, borderWidth: 1, borderColor: RGF.hair, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.7 }}>
       <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: RGF.bg, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.muted }}>{rank}</Text>
       </View>
@@ -100,17 +103,18 @@ function GapCardPending({ rank }: { rank: number }) {
 
 export default function ScreenResults() {
   const router = useRouter();
+  const { RGF } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ChipIcon name="chevR" size={40} iconSize={14} />
+            <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <ChipIcon name="share" size={40} iconSize={16} />
-            <ChipIcon name="download" size={40} iconSize={16} />
+            <ChipIcon name="share" size={40} iconSize={16} bg={RGF.surface} />
+            <ChipIcon name="download" size={40} iconSize={16} bg={RGF.surface} />
           </View>
         </View>
 
@@ -169,6 +173,6 @@ export default function ScreenResults() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: RGF.bg },
+  container: { flex: 1 },
   scrollContent: { paddingTop: 60, paddingHorizontal: 22, paddingBottom: 40 }
 });

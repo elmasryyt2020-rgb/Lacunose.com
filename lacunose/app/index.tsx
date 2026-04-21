@@ -1,15 +1,16 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { RGF } from '../constants/theme';
+import { useTheme } from '../constants/theme';
 import { Logo } from '../components/Logo';
 
 export default function ScreenGetStarted() {
   const router = useRouter();
+  const { RGF } = useTheme();
   const appName = 'Lacunose';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       {/* ambient floating color blobs behind */}
       <View style={[styles.blob, { top: 140, right: -40, width: 180, height: 180, borderRadius: 90, backgroundColor: RGF.butter, opacity: 0.55 }]} />
       <View style={[styles.blob, { top: 420, left: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: RGF.sky, opacity: 0.5 }]} />
@@ -41,7 +42,7 @@ export default function ScreenGetStarted() {
           backgroundColor: RGF.ink, borderRadius: 28, paddingVertical: 22, paddingHorizontal: 20,
           alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2,
         }}>
-        <Text style={{ fontFamily: RGF.sansSemiBold, color: '#fff', fontSize: 17, letterSpacing: -0.2 }}>
+        <Text style={{ fontFamily: RGF.sansSemiBold, color: RGF.bg, fontSize: 17, letterSpacing: -0.2 }}>
           Get started
         </Text>
       </TouchableOpacity>
@@ -61,7 +62,6 @@ export default function ScreenGetStarted() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: RGF.bg,
     paddingTop: 80,
     paddingHorizontal: 28,
     paddingBottom: 40,

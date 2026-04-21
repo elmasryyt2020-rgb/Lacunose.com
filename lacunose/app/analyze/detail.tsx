@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { RGF } from '../../constants/theme';
+import { useTheme } from '../../constants/theme';
 import { ChipIcon, CategoryPill } from '../../components/Shared';
 
 function ScoreBig({ value, label, color }: any) {
+  const { RGF } = useTheme();
   return (
     <View style={{
       flex: 1, backgroundColor: color, borderRadius: 20,
@@ -21,15 +22,16 @@ function ScoreBig({ value, label, color }: any) {
 
 export default function ScreenDetail() {
   const router = useRouter();
+  const { RGF } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ChipIcon name="chevR" size={40} iconSize={14} />
+            <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
           </TouchableOpacity>
-          <ChipIcon name="bookmark" size={40} iconSize={16} />
+          <ChipIcon name="bookmark" size={40} iconSize={16} bg={RGF.surface} />
         </View>
 
         <View style={{ marginBottom: 18 }}>
@@ -49,16 +51,16 @@ export default function ScreenDetail() {
 
         {/* research question */}
         <View style={{ backgroundColor: RGF.ink, borderRadius: 24, padding: 20, marginBottom: 14 }}>
-          <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>
+          <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: RGF.bg, opacity: 0.5, marginBottom: 10 }}>
             Suggested research question
           </Text>
-          <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 26, letterSpacing: -0.3, color: '#fff' }}>
+          <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 26, letterSpacing: -0.3, color: RGF.bg }}>
             In children aged 6–11 with BMI ≥ 95th percentile, does 24-month semaglutide use alter lipid profile or HRV compared to lifestyle-only?
           </Text>
         </View>
 
         {/* method rec */}
-        <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: RGF.hair }}>
+        <View style={{ backgroundColor: RGF.surface, borderRadius: 24, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: RGF.hair }}>
           <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: RGF.muted, marginBottom: 8 }}>
             Suggested method
           </Text>
@@ -75,7 +77,7 @@ export default function ScreenDetail() {
         </View>
 
         {/* evidence panel */}
-        <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
+        <View style={{ backgroundColor: RGF.surface, borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.ink, letterSpacing: -0.3 }}>Evidence</Text>
             <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>5 papers</Text>
@@ -105,6 +107,6 @@ export default function ScreenDetail() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: RGF.bg },
+  container: { flex: 1 },
   scrollContent: { paddingTop: 60, paddingHorizontal: 22, paddingBottom: 40 }
 });

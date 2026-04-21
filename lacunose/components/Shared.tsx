@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ViewStyle } from 'react-native';
 import Svg, { Path, Circle, Rect, Text as SvgText } from 'react-native-svg';
-import { RGF } from '../constants/theme';
+import { useTheme } from '../constants/theme';
 
-export function Icon({ name, size = 20, color = '#0E0E0C', stroke = 1.6 }: { name: string, size?: number, color?: string, stroke?: number }) {
-  const p = { fill: 'none', stroke: color, strokeWidth: stroke, strokeLinecap: 'round' as any, strokeLinejoin: 'round' as any };
+export function Icon({ name, size = 20, color, stroke = 1.6 }: { name: string, size?: number, color?: string, stroke?: number }) {
+  const { RGF } = useTheme();
+  const c = color || RGF.ink;
+  const p = { fill: 'none', stroke: c, strokeWidth: stroke, strokeLinecap: 'round' as any, strokeLinejoin: 'round' as any };
   let paths = null;
   switch (name) {
     case 'search': paths = <><Circle cx="10" cy="10" r="6" {...p}/><Path d="M15 15l4 4" {...p}/></>; break;
@@ -57,6 +59,7 @@ export function Icon({ name, size = 20, color = '#0E0E0C', stroke = 1.6 }: { nam
 }
 
 export function BlackPill({ children, size = 52, style = {} }: { children: React.ReactNode, size?: number, style?: ViewStyle }) {
+  const { RGF } = useTheme();
   return (
     <View style={[{
       width: size, height: size, borderRadius: size / 2,
@@ -68,28 +71,34 @@ export function BlackPill({ children, size = 52, style = {} }: { children: React
   );
 }
 
-export function ChipIcon({ name, size = 44, iconSize = 20, bg = '#fff', color = RGF.ink }: { name: string, size?: number, iconSize?: number, bg?: string, color?: string }) {
+export function ChipIcon({ name, size = 44, iconSize = 20, bg, color, style }: { name: string, size?: number, iconSize?: number, bg?: string, color?: string, style?: ViewStyle }) {
+  const { RGF } = useTheme();
+  let cBg = bg || RGF.surface;
+  if (bg === '#fff') cBg = RGF.surface;
+  
   return (
-    <View style={{
+    <View style={[{
       width: size, height: size, borderRadius: 14,
-      backgroundColor: bg,
+      backgroundColor: cBg,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.04,
       shadowRadius: 2,
       elevation: 1,
-      borderWidth: bg === '#fff' ? 1 : 0,
+      borderWidth: 1,
       borderColor: RGF.hair,
-    }}>
-      <Icon name={name} size={iconSize} color={color} />
+    }, style]}>
+      <Icon name={name} size={iconSize} color={color || RGF.ink} />
     </View>
   );
 }
 
-export function ScoreDial({ value = 7, max = 10, label = 'Novelty', color = RGF.ink, size = 44 }: { value?: number, max?: number, label?: string, color?: string, size?: number }) {
+export function ScoreDial({ value = 7, max = 10, label = 'Novelty', color, size = 44 }: { value?: number, max?: number, label?: string, color?: string, size?: number }) {
+  const { RGF } = useTheme();
+  const c = color || RGF.ink;
   const r = size / 2 - 3;
-  const c = 2 * Math.PI * r;
+  const circ = 2 * Math.PI * r;
   const pct = value / max;
   return (
     <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -97,8 +106,8 @@ export function ScoreDial({ value = 7, max = 10, label = 'Novelty', color = RGF.
         <Circle cx={size/2} cy={size/2} r={r} stroke={RGF.hair} strokeWidth="3" fill="none" />
         <Circle
           cx={size/2} cy={size/2} r={r}
-          stroke={color} strokeWidth="3" fill="none"
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
+          stroke={c} strokeWidth="3" fill="none"
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
           strokeLinecap="round"
           transform={`rotate(-90 ${size/2} ${size/2})`}
         />
@@ -115,6 +124,7 @@ export function ScoreDial({ value = 7, max = 10, label = 'Novelty', color = RGF.
 }
 
 export function CategoryPill({ kind }: { kind: string }) {
+  const { RGF } = useTheme();
   const map: Record<string, { bg: string, label: string }> = {
     'future-work': { bg: RGF.sky, label: 'Future work' },
     'methodology': { bg: RGF.mint, label: 'Methodology' },

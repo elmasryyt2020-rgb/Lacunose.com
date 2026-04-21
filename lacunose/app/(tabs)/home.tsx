@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { RGF } from '../../constants/theme';
+import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, ScoreDial, CategoryPill } from '../../components/Shared';
 
 function RecentCard({ topic, gap, novelty, category, color }: any) {
+  const { RGF } = useTheme();
   return (
-    <TouchableOpacity activeOpacity={0.8} style={styles.recentCard}>
+    <TouchableOpacity activeOpacity={0.8} style={[styles.recentCard, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
         <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="gap" size={18} color={RGF.ink} />
@@ -37,6 +38,7 @@ function RecentCard({ topic, gap, novelty, category, color }: any) {
 export default function ScreenHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { RGF } = useTheme();
   const [topic, setTopic] = useState('');
 
   const handleSearch = () => {
@@ -52,7 +54,7 @@ export default function ScreenHome() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       {/* Ambient background blobs simulated with low opacity circles */}
       <View style={{ position: 'absolute', top: 100, right: -40, width: 220, height: 220, borderRadius: 110, backgroundColor: RGF.butter, opacity: 0.3 }} />
       <View style={{ position: 'absolute', top: 380, left: -60, width: 280, height: 280, borderRadius: 140, backgroundColor: RGF.sky, opacity: 0.2 }} />
@@ -63,10 +65,10 @@ export default function ScreenHome() {
         {/* Header Row */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
           <TouchableOpacity onPress={() => router.push('/(tabs)/library')}>
-            <ChipIcon name="book" size={40} iconSize={18} bg="#fff" />
+            <ChipIcon name="book" size={40} iconSize={18} bg={RGF.surface} />
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} style={{ position: 'relative' }} onPress={() => router.push('/notifications')}>
-            <ChipIcon name="bell" size={40} iconSize={18} bg="#fff" />
+            <ChipIcon name="bell" size={40} iconSize={18} bg={RGF.surface} />
             <View style={{
               position: 'absolute', top: -2, right: -2, backgroundColor: '#E55B3C',
               width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center',
@@ -92,10 +94,10 @@ export default function ScreenHome() {
 
         {/* Omni-Input Search */}
         <View style={styles.omniInputContainer}>
-          <Text style={styles.omniLabel}>What are you exploring today?</Text>
-          <View style={styles.omniBox}>
+          <Text style={[styles.omniLabel, { fontFamily: RGF.sansMedium, color: RGF.muted }]}>What are you exploring today?</Text>
+          <View style={[styles.omniBox, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
             <TextInput 
-              style={styles.omniTextField}
+              style={[styles.omniTextField, { fontFamily: RGF.sans, color: RGF.ink }]}
               placeholder="E.g. GLP-1 agonists in pediatric cohorts..."
               placeholderTextColor={RGF.muted}
               multiline
@@ -103,16 +105,16 @@ export default function ScreenHome() {
               onChangeText={setTopic}
             />
             
-            <View style={styles.omniRow}>
+            <View style={[styles.omniRow, { borderColor: RGF.hair }]}>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={styles.omniAction}>
+                <TouchableOpacity style={[styles.omniAction, { backgroundColor: RGF.bg, borderColor: RGF.hair }]}>
                   <Icon name="mic" size={16} color={RGF.ink} />
                 </TouchableOpacity>
               </View>
               
-              <TouchableOpacity onPress={handleSearch} activeOpacity={0.8} style={[styles.omniSubmit, { opacity: topic.trim().length > 0 ? 1 : 0.5 }]}>
-                <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 14, color: '#fff', marginRight: 6 }}>Analyze</Text>
-                <Icon name="arrow" size={14} color="#fff" />
+              <TouchableOpacity onPress={handleSearch} activeOpacity={0.8} style={[styles.omniSubmit, { backgroundColor: RGF.ink, opacity: topic.trim().length > 0 ? 1 : 0.5 }]}>
+                <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 14, color: RGF.bg, marginRight: 6 }}>Analyze</Text>
+                <Icon name="arrow" size={14} color={RGF.bg} />
               </TouchableOpacity>
             </View>
           </View>
@@ -141,36 +143,14 @@ export default function ScreenHome() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: RGF.bg,
-  },
-  scrollContent: {
-    paddingTop: 60, paddingHorizontal: 22,
-  },
-  omniInputContainer: {
-    marginBottom: 40,
-  },
-  omniLabel: {
-    fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.muted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10,
-  },
-  omniBox: {
-    backgroundColor: '#fff', borderRadius: 26, padding: 18, borderWidth: 1, borderColor: RGF.hair,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.04, shadowRadius: 24, elevation: 6,
-  },
-  omniTextField: {
-    fontFamily: RGF.sans, fontSize: 18, color: RGF.ink, minHeight: 80, textAlignVertical: 'top', padding: 0, marginBottom: 12,
-  },
-  omniRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderColor: RGF.hair
-  },
-  omniAction: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: RGF.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: RGF.hair
-  },
-  omniSubmit: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: RGF.ink, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 20
-  },
-  recentCard: {
-    backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 3,
-  }
+  container: { flex: 1 },
+  scrollContent: { paddingTop: 60, paddingHorizontal: 22 },
+  omniInputContainer: { marginBottom: 40 },
+  omniLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
+  omniBox: { borderRadius: 26, padding: 18, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.04, shadowRadius: 24, elevation: 6 },
+  omniTextField: { fontSize: 18, minHeight: 80, textAlignVertical: 'top', padding: 0, marginBottom: 12 },
+  omniRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1 },
+  omniAction: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  omniSubmit: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 20 },
+  recentCard: { borderRadius: 24, padding: 18, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 3 }
 });

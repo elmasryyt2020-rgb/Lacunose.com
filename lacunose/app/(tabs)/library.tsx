@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RGF } from '../../constants/theme';
+import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
 import { useRouter } from 'expo-router';
 
 export default function ScreenLibrary() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { RGF } = useTheme();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isFilterActive, setIsFilterActive] = useState(false);
 
@@ -21,11 +22,11 @@ export default function ScreenLibrary() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         {isSearchActive ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: RGF.ink, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flex: 1, backgroundColor: RGF.surface, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: RGF.ink, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Icon name="search" size={16} color={RGF.ink} />
               <TextInput autoFocus placeholder="Search past analyses..." placeholderTextColor={RGF.muted} style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, padding: 0 }} />
             </View>
@@ -36,10 +37,10 @@ export default function ScreenLibrary() {
         ) : (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <TouchableOpacity onPress={() => setIsFilterActive(true)}>
-              <ChipIcon name="filter" size={40} iconSize={16} />
+              <ChipIcon name="filter" size={40} iconSize={16} bg={RGF.surface} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setIsSearchActive(true)}>
-              <ChipIcon name="search" size={40} iconSize={16} />
+              <ChipIcon name="search" size={40} iconSize={16} bg={RGF.surface} />
             </TouchableOpacity>
           </View>
         )}
@@ -56,11 +57,11 @@ export default function ScreenLibrary() {
           {['All', 'Saved', 'Medicine', 'Computer Science', 'Archived'].map((cat, i) => (
             <TouchableOpacity key={i} activeOpacity={0.7} style={{
               paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99,
-              backgroundColor: i === 0 ? RGF.ink : '#fff',
+              backgroundColor: i === 0 ? RGF.ink : RGF.surface,
               borderWidth: 1, borderColor: i === 0 ? RGF.ink : RGF.hair,
               justifyContent: 'center',
             }}>
-              <Text style={{ fontFamily: i === 0 ? RGF.sansMedium : RGF.sans, fontSize: 13, color: i === 0 ? '#fff' : RGF.ink }}>
+              <Text style={{ fontFamily: i === 0 ? RGF.sansMedium : RGF.sans, fontSize: 13, color: i === 0 ? RGF.bg : RGF.ink }}>
                 {cat}
               </Text>
             </TouchableOpacity>
@@ -70,7 +71,7 @@ export default function ScreenLibrary() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {items.map((it, i) => (
             <TouchableOpacity key={i} onPress={() => router.push('/analyze/results')} activeOpacity={0.8} style={{
-              width: '48%', backgroundColor: '#fff', borderRadius: 22, padding: 14,
+              width: '48%', backgroundColor: RGF.surface, borderRadius: 22, padding: 14,
               borderWidth: 1, borderColor: RGF.hair, minHeight: 160,
               justifyContent: 'space-between'
             }}>
@@ -100,7 +101,7 @@ export default function ScreenLibrary() {
           <View style={{ backgroundColor: RGF.bg, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, paddingBottom: Math.max(40, insets.bottom + 20) }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
               <Text style={{ fontFamily: RGF.display, fontSize: 26, color: RGF.ink }}>Filters</Text>
-              <TouchableOpacity onPress={() => setIsFilterActive(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+              <TouchableOpacity onPress={() => setIsFilterActive(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: RGF.hair, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="close" size={14} color={RGF.ink} />
               </TouchableOpacity>
             </View>
@@ -110,12 +111,12 @@ export default function ScreenLibrary() {
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>Sort by</Text>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: RGF.ink }}>
-                    <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: '#fff' }}>Newest</Text>
+                    <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.bg }}>Newest</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: '#fff', borderWidth: 1, borderColor: RGF.hair }}>
+                  <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: RGF.surface, borderWidth: 1, borderColor: RGF.hair }}>
                     <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.ink }}>Oldest</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: '#fff', borderWidth: 1, borderColor: RGF.hair }}>
+                  <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: RGF.surface, borderWidth: 1, borderColor: RGF.hair }}>
                     <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.ink }}>Most Gaps</Text>
                   </TouchableOpacity>
                 </View>
@@ -125,9 +126,9 @@ export default function ScreenLibrary() {
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>Date Range</Text>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: RGF.ink }}>
-                    <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: '#fff' }}>All time</Text>
+                    <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.bg }}>All time</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: '#fff', borderWidth: 1, borderColor: RGF.hair }}>
+                  <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 99, backgroundColor: RGF.surface, borderWidth: 1, borderColor: RGF.hair }}>
                     <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.ink }}>This month</Text>
                   </TouchableOpacity>
                 </View>
@@ -135,7 +136,7 @@ export default function ScreenLibrary() {
             </View>
             
             <TouchableOpacity onPress={() => setIsFilterActive(false)} style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 40 }}>
-              <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: '#fff' }}>Apply settings</Text>
+              <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg }}>Apply settings</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -145,10 +146,6 @@ export default function ScreenLibrary() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: RGF.bg,
-  },
-  scrollContent: {
-    paddingTop: 60, paddingHorizontal: 22, paddingBottom: 40,
-  }
+  container: { flex: 1 },
+  scrollContent: { paddingTop: 60, paddingHorizontal: 22, paddingBottom: 40 }
 });

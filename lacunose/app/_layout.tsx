@@ -7,10 +7,29 @@ import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { RGF } from '../constants/theme';
+import { ThemeProvider, useTheme } from '../constants/theme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+function AppContent() {
+  const { RGF, theme } = useTheme();
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: RGF.bg } }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="sign-up" />
+        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="analyze/results" />
+        <Stack.Screen name="analyze/detail" />
+        <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
+      </Stack>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+    </>
+  );
+}
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -32,18 +51,8 @@ export default function RootLayout() {
   }
 
   return (
-    <>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: RGF.bg } }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="sign-up" />
-        <Stack.Screen name="sign-in" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="analyze/results" />
-        <Stack.Screen name="analyze/detail" />
-        <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
-      </Stack>
-      <StatusBar style="dark" />
-    </>
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

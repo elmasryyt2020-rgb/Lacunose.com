@@ -2,13 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { RGF } from '../constants/theme';
+import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
 
 function TierCard({ tier, price, period, desc, featured, current, dark }: any) {
-  const bg = featured ? RGF.butter : dark ? RGF.ink : '#fff';
-  const ink = dark ? '#fff' : RGF.ink;
-  const soft = dark ? 'rgba(255,255,255,0.6)' : RGF.inkSoft;
+  const { RGF, theme } = useTheme();
+  const bg = featured ? RGF.butter : dark ? RGF.ink : RGF.surface;
+  const ink = dark ? RGF.bg : RGF.ink;
+  const soft = dark ? (theme === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)') : RGF.inkSoft;
   
   return (
     <View style={{
@@ -19,12 +20,12 @@ function TierCard({ tier, price, period, desc, featured, current, dark }: any) {
         <Text style={{ fontFamily: RGF.display, fontSize: 22, color: ink, letterSpacing: -0.4 }}>{tier}</Text>
         {current && (
           <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 99, backgroundColor: RGF.ink }}>
-            <Text style={{ fontFamily: RGF.sansMedium, color: '#fff', fontSize: 11 }}>Current</Text>
+            <Text style={{ fontFamily: RGF.sansMedium, color: RGF.bg, fontSize: 11 }}>Current</Text>
           </View>
         )}
         {featured && (
           <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 99, backgroundColor: RGF.ink }}>
-            <Text style={{ fontFamily: RGF.sansMedium, color: '#fff', fontSize: 11 }}>Most popular</Text>
+            <Text style={{ fontFamily: RGF.sansMedium, color: RGF.bg, fontSize: 11 }}>Most popular</Text>
           </View>
         )}
       </View>
@@ -40,13 +41,14 @@ function TierCard({ tier, price, period, desc, featured, current, dark }: any) {
 export default function ScreenPaywall() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { RGF } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 36 }}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ChipIcon name="close" size={40} iconSize={16} />
+            <ChipIcon name="close" size={40} iconSize={16} bg={RGF.surface} />
           </TouchableOpacity>
           <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>Restore</Text>
         </View>
@@ -61,7 +63,6 @@ export default function ScreenPaywall() {
         <View style={{ gap: 10, marginBottom: 20 }}>
           <TierCard tier="Free" price="$0" desc="3 analyses/month · top-5 gaps" current />
           <TierCard tier="Pro" price="$20" period="/ month" desc="20 analyses · full list · Zotero · advisor" featured />
-          {/* Removed Team tier per user's request */}
         </View>
 
         <TouchableOpacity 
@@ -69,10 +70,10 @@ export default function ScreenPaywall() {
           onPress={() => router.back()}
           style={{ backgroundColor: RGF.ink, borderRadius: 28, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 16, color: '#fff' }}>Start 7-day trial</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, opacity: 0.6, color: '#fff', marginTop: 2 }}>$20/mo after · cancel anytime</Text>
+            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 16, color: RGF.bg }}>Start 7-day trial</Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 12, opacity: 0.6, color: RGF.bg, marginTop: 2 }}>$20/mo after · cancel anytime</Text>
           </View>
-          <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: RGF.bg, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="arrow" size={18} color={RGF.ink} />
           </View>
         </TouchableOpacity>
@@ -82,6 +83,6 @@ export default function ScreenPaywall() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: RGF.bg },
+  container: { flex: 1 },
   scrollContent: { paddingTop: 60, paddingHorizontal: 22, paddingBottom: 40 }
 });

@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { RGF } from '../constants/theme';
+import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
 
 export default function ScreenSupport() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { RGF } = useTheme();
   const [messages, setMessages] = useState([
     { id: 1, text: "Hi Seif! How can we help you with your Lacunose workspace today?", isUser: false, time: '10:00 AM' }
   ]);
@@ -20,11 +21,11 @@ export default function ScreenSupport() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 22, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: RGF.hair }}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
+      <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 22, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: RGF.surface, borderBottomWidth: 1, borderBottomColor: RGF.hair }}>
         <TouchableOpacity onPress={() => router.back()}>
           <View style={{ transform: [{ scaleX: -1 }] }}>
-            <ChipIcon name="chevR" size={40} iconSize={14} />
+            <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
           </View>
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
@@ -40,12 +41,12 @@ export default function ScreenSupport() {
             <View key={m.id} style={{ alignItems: m.isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
               <View style={{
                 maxWidth: '80%', padding: 16, borderRadius: 24,
-                backgroundColor: m.isUser ? RGF.ink : '#fff',
+                backgroundColor: m.isUser ? RGF.ink : RGF.surface,
                 borderWidth: m.isUser ? 0 : 1, borderColor: RGF.hair,
                 borderBottomRightRadius: m.isUser ? 8 : 24,
                 borderBottomLeftRadius: m.isUser ? 24 : 8,
               }}>
-                <Text style={{ fontFamily: RGF.sans, fontSize: 15, lineHeight: 22, color: m.isUser ? '#fff' : RGF.ink }}>
+                <Text style={{ fontFamily: RGF.sans, fontSize: 15, lineHeight: 22, color: m.isUser ? RGF.bg : RGF.ink }}>
                   {m.text}
                 </Text>
               </View>
@@ -55,7 +56,7 @@ export default function ScreenSupport() {
         </ScrollView>
 
         <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(20, insets.bottom), paddingTop: 10, backgroundColor: RGF.bg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 99, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: RGF.hair }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: RGF.surface, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: RGF.hair }}>
             <TextInput 
               style={{ flex: 1, fontFamily: RGF.sans, fontSize: 15, color: RGF.ink, maxHeight: 100, paddingVertical: 6 }} 
               placeholder="Message support..."
@@ -76,6 +77,6 @@ export default function ScreenSupport() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: RGF.bg,
+    flex: 1
   }
 });

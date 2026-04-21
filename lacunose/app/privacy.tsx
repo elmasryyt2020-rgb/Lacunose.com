@@ -1,18 +1,19 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { RGF } from '../constants/theme';
+import { useTheme } from '../constants/theme';
 import { ChipIcon } from '../components/Shared';
 
 export default function ScreenPrivacy() {
   const router = useRouter();
+  const { RGF } = useTheme();
 
   return (
     <View style={{ flex: 1, backgroundColor: RGF.bg }}>
       <ScrollView contentContainerStyle={{ paddingTop: 60, paddingHorizontal: 28, paddingBottom: 60 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 30 }}>
           <TouchableOpacity onPress={() => router.back()}>
-            <ChipIcon name="chevL" size={40} iconSize={14} />
+            <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
           </TouchableOpacity>
         </View>
         <Text style={{ fontFamily: RGF.display, fontSize: 36, color: RGF.ink, marginBottom: 20 }}>Privacy Policy</Text>

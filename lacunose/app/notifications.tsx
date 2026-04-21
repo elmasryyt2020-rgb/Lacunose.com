@@ -2,14 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { RGF } from '../constants/theme';
+import { useTheme } from '../constants/theme';
 import { ChipIcon, Icon } from '../components/Shared';
 
 function NotificationItem({ title, message, time, icon, color, isNew }: any) {
+  const { RGF } = useTheme();
   return (
     <TouchableOpacity activeOpacity={0.7} style={[
       styles.itemBox,
-      isNew && { backgroundColor: '#fff', borderColor: RGF.hair, borderWidth: 1 }
+      isNew && { backgroundColor: RGF.surface, borderColor: RGF.hair, borderWidth: 1 }
     ]}>
       <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={icon} size={20} color={RGF.ink} />
@@ -27,6 +28,7 @@ function NotificationItem({ title, message, time, icon, color, isNew }: any) {
 export default function ScreenNotifications() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { RGF, theme } = useTheme();
 
   const data = [
     { 
@@ -52,10 +54,10 @@ export default function ScreenNotifications() {
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 60) }]}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 60), borderBottomColor: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <ChipIcon name="chevL" size={40} iconSize={14} />
+          <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
         </TouchableOpacity>
         <Text style={{ fontFamily: RGF.display, fontSize: 24, letterSpacing: -0.5, color: RGF.ink }}>
           Notifications
@@ -78,12 +80,12 @@ export default function ScreenNotifications() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: RGF.bg,
+    flex: 1
   },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
     paddingHorizontal: 22, paddingBottom: 20,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.03)'
+    borderBottomWidth: 1
   },
   scrollContent: {
     paddingTop: 20, paddingHorizontal: 22,

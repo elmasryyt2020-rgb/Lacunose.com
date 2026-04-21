@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { RGF } from '../../constants/theme';
+import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
 
 const FIELDS = [
@@ -12,34 +12,8 @@ const FIELDS = [
   { id: 'psych', label: 'Psychology' },
 ];
 
-const FRAMES: Record<string, any[]> = {
-  medicine: [
-    { letter: 'P', label: 'Population', initialValue: 'Children 6–17', color: RGF.rose },
-    { letter: 'I', label: 'Intervention', initialValue: 'Semaglutide 2.4mg', color: RGF.lavender },
-    { letter: 'C', label: 'Comparator', initialValue: 'Lifestyle only', color: RGF.mint },
-    { letter: 'O', label: 'Outcome', initialValue: 'Weight reduction', color: RGF.sky },
-  ],
-  cs: [
-    { letter: 'T', label: 'Task', initialValue: 'Image segmentation', color: RGF.rose },
-    { letter: 'D', label: 'Dataset', initialValue: 'COCO-Stuff', color: RGF.lavender },
-    { letter: 'M', label: 'Method', initialValue: 'Contrastive learning', color: RGF.mint },
-    { letter: 'M', label: 'Metric', initialValue: 'mIoU', color: RGF.sky },
-  ],
-  econ: [
-    { letter: 'T', label: 'Treatment', initialValue: 'Universal Basic Income', color: RGF.rose },
-    { letter: 'P', label: 'Population', initialValue: 'Low-income households', color: RGF.lavender },
-    { letter: 'O', label: 'Outcome', initialValue: 'Labor participation', color: RGF.mint },
-    { letter: 'I', label: 'Strategy', initialValue: 'Difference-in-differences', color: RGF.sky },
-  ],
-  psych: [
-    { letter: 'S', label: 'Sample', initialValue: 'Undergraduate students', color: RGF.rose },
-    { letter: 'P', label: 'Phenomenon', initialValue: 'Cognitive dissonance', color: RGF.lavender },
-    { letter: 'D', label: 'Design', initialValue: 'Factorial experiment', color: RGF.mint },
-    { letter: 'E', label: 'Evaluation', initialValue: 'Self-report scale', color: RGF.sky },
-  ],
-};
-
 function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch, onPress }: any) {
+  const { RGF } = useTheme();
   return (
     <TouchableOpacity activeOpacity={onPress ? 0.7 : 1} onPress={onPress} style={{
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -49,7 +23,7 @@ function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch,
       <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, color: RGF.ink }}>{label}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         {isSwitch ? (
-          <Switch value={switchValue} onValueChange={onSwitch} trackColor={{ false: RGF.hair, true: RGF.ink }} thumbColor="#fff" style={{ transform: [{ scale: 0.75 }] }} />
+          <Switch value={switchValue} onValueChange={onSwitch} trackColor={{ false: RGF.hair, true: RGF.ink }} thumbColor={RGF.bg} style={{ transform: [{ scale: 0.75 }] }} />
         ) : (
           <>
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: muted ? RGF.muted : RGF.ink }}>{value}</Text>
@@ -62,6 +36,7 @@ function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch,
 }
 
 function FrameRow({ letter, label, initialValue, color }: any) {
+  const { RGF } = useTheme();
   const [value, setValue] = useState(initialValue);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -70,7 +45,7 @@ function FrameRow({ letter, label, initialValue, color }: any) {
       activeOpacity={0.9} 
       onPress={() => setIsEditing(true)}
       style={{
-        backgroundColor: '#fff', borderRadius: 18, padding: 12,
+        backgroundColor: RGF.surface, borderRadius: 18, padding: 12,
         borderWidth: 1, borderColor: isEditing ? RGF.ink : RGF.hair,
         flexDirection: 'row', alignItems: 'center', gap: 12,
       }}>
@@ -108,7 +83,35 @@ function FrameRow({ letter, label, initialValue, color }: any) {
 export default function ScreenAnalyze() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { RGF } = useTheme();
   
+  const FRAMES: Record<string, any[]> = {
+    medicine: [
+      { letter: 'P', label: 'Population', initialValue: 'Children 6–17', color: RGF.rose },
+      { letter: 'I', label: 'Intervention', initialValue: 'Semaglutide 2.4mg', color: RGF.lavender },
+      { letter: 'C', label: 'Comparator', initialValue: 'Lifestyle only', color: RGF.mint },
+      { letter: 'O', label: 'Outcome', initialValue: 'Weight reduction', color: RGF.sky },
+    ],
+    cs: [
+      { letter: 'T', label: 'Task', initialValue: 'Image segmentation', color: RGF.rose },
+      { letter: 'D', label: 'Dataset', initialValue: 'COCO-Stuff', color: RGF.lavender },
+      { letter: 'M', label: 'Method', initialValue: 'Contrastive learning', color: RGF.mint },
+      { letter: 'M', label: 'Metric', initialValue: 'mIoU', color: RGF.sky },
+    ],
+    econ: [
+      { letter: 'T', label: 'Treatment', initialValue: 'Universal Basic Income', color: RGF.rose },
+      { letter: 'P', label: 'Population', initialValue: 'Low-income households', color: RGF.lavender },
+      { letter: 'O', label: 'Outcome', initialValue: 'Labor participation', color: RGF.mint },
+      { letter: 'I', label: 'Strategy', initialValue: 'Difference-in-differences', color: RGF.sky },
+    ],
+    psych: [
+      { letter: 'S', label: 'Sample', initialValue: 'Undergraduate students', color: RGF.rose },
+      { letter: 'P', label: 'Phenomenon', initialValue: 'Cognitive dissonance', color: RGF.lavender },
+      { letter: 'D', label: 'Design', initialValue: 'Factorial experiment', color: RGF.mint },
+      { letter: 'E', label: 'Evaluation', initialValue: 'Self-report scale', color: RGF.sky },
+    ],
+  };
+
   const [activeField, setActiveField] = useState('medicine');
   const [topic, setTopic] = useState('GLP-1 agonists for pediatric obesity');
   const [preprints, setPreprints] = useState(true);
@@ -122,11 +125,11 @@ export default function ScreenAnalyze() {
   const currentFrame = FRAMES[activeField] || FRAMES['medicine'];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 140 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
-            <ChipIcon name="close" size={40} iconSize={16} />
+            <ChipIcon name="close" size={40} iconSize={16} bg={RGF.surface} />
           </TouchableOpacity>
           <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>2 of 3 used this month</Text>
         </View>
@@ -137,11 +140,11 @@ export default function ScreenAnalyze() {
             return (
               <TouchableOpacity key={f.id} onPress={() => setActiveField(f.id)} activeOpacity={0.7} style={{
                 paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99,
-                backgroundColor: isActive ? RGF.ink : '#fff',
+                backgroundColor: isActive ? RGF.ink : RGF.surface,
                 borderWidth: 1, borderColor: isActive ? RGF.ink : RGF.hair,
                 justifyContent: 'center',
               }}>
-                <Text style={{ fontFamily: isActive ? RGF.sansMedium : RGF.sans, fontSize: 13, color: isActive ? '#fff' : RGF.ink }}>
+                <Text style={{ fontFamily: isActive ? RGF.sansMedium : RGF.sans, fontSize: 13, color: isActive ? RGF.bg : RGF.ink }}>
                   {f.label}
                 </Text>
               </TouchableOpacity>
@@ -155,7 +158,7 @@ export default function ScreenAnalyze() {
 
         {/* topic box */}
         <View style={{
-          backgroundColor: '#fff', borderRadius: 26, padding: 20, minHeight: 180, marginBottom: 20,
+          backgroundColor: RGF.surface, borderRadius: 26, padding: 20, minHeight: 180, marginBottom: 20,
           borderWidth: 1, borderColor: RGF.hair,
         }}>
           <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
@@ -195,7 +198,7 @@ export default function ScreenAnalyze() {
         </View>
 
         {/* filter toggles */}
-        <View style={{ backgroundColor: '#fff', borderRadius: 24, paddingVertical: 6, borderWidth: 1, borderColor: RGF.hair, marginBottom: 24 }}>
+        <View style={{ backgroundColor: RGF.surface, borderRadius: 24, paddingVertical: 6, borderWidth: 1, borderColor: RGF.hair, marginBottom: 24 }}>
           <FilterRow label="Include preprints" isSwitch switchValue={preprints} onSwitch={setPreprints} />
           <FilterRow label="Open-access only" isSwitch switchValue={openAccess} onSwitch={setOpenAccess} />
           <FilterRow label="Years" value={selectedYears} onPress={() => setYearsModalVisible(true)} />
@@ -211,28 +214,29 @@ export default function ScreenAnalyze() {
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
           }}>
           <View>
-            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: '#fff', letterSpacing: -0.3 }}>Find gaps</Text>
-            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>≈ 45 sec · 500 papers</Text>
+            <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg, letterSpacing: -0.3 }}>Find gaps</Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.bg, opacity: 0.6, marginTop: 2 }}>≈ 45 sec · 500 papers</Text>
           </View>
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: RGF.bg, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="arrow" size={20} color={RGF.ink} />
           </View>
         </TouchableOpacity>
       </ScrollView>
 
+      {/* years modal */}
       <Modal visible={isYearsModalVisible} animationType="slide" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: RGF.bg, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, paddingBottom: Math.max(40, insets.bottom + 20) }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
               <Text style={{ fontFamily: RGF.display, fontSize: 26, color: RGF.ink }}>Select Years</Text>
-              <TouchableOpacity onPress={() => setYearsModalVisible(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+              <TouchableOpacity onPress={() => setYearsModalVisible(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: RGF.hair, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="close" size={14} color={RGF.ink} />
               </TouchableOpacity>
             </View>
             <View style={{ gap: 10 }}>
               {['2019–2026', '2014–2026', 'All time', 'Custom range'].map((y) => (
-                <TouchableOpacity key={y} onPress={() => { setSelectedYears(y); setYearsModalVisible(false); }} style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 18, backgroundColor: selectedYears === y ? RGF.ink : '#fff', borderWidth: 1, borderColor: selectedYears === y ? RGF.ink : RGF.hair }}>
-                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, color: selectedYears === y ? '#fff' : RGF.ink }}>{y}</Text>
+                <TouchableOpacity key={y} onPress={() => { setSelectedYears(y); setYearsModalVisible(false); }} style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 18, backgroundColor: selectedYears === y ? RGF.ink : RGF.surface, borderWidth: 1, borderColor: selectedYears === y ? RGF.ink : RGF.hair }}>
+                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, color: selectedYears === y ? RGF.bg : RGF.ink }}>{y}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -240,19 +244,20 @@ export default function ScreenAnalyze() {
         </View>
       </Modal>
 
+      {/* study designs modal */}
       <Modal visible={isDesignModalVisible} animationType="slide" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: RGF.bg, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, paddingBottom: Math.max(40, insets.bottom + 20) }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
               <Text style={{ fontFamily: RGF.display, fontSize: 26, color: RGF.ink }}>Study Designs</Text>
-              <TouchableOpacity onPress={() => setDesignModalVisible(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+              <TouchableOpacity onPress={() => setDesignModalVisible(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: RGF.hair, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="close" size={14} color={RGF.ink} />
               </TouchableOpacity>
             </View>
             <View style={{ gap: 10 }}>
-              {['All', 'Randomized Controlled Trials', 'Systematic Reviews', 'Cohort Studies', 'Case Reports'].map((d) => (
-                <TouchableOpacity key={d} onPress={() => { setSelectedDesign(d); setDesignModalVisible(false); }} style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 18, backgroundColor: selectedDesign === d ? RGF.ink : '#fff', borderWidth: 1, borderColor: selectedDesign === d ? RGF.ink : RGF.hair }}>
-                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, color: selectedDesign === d ? '#fff' : RGF.ink }}>{d}</Text>
+              {['All', 'Systematic Reviews', 'RCTs', 'Cohort Studies', 'Case Reports'].map((d) => (
+                <TouchableOpacity key={d} onPress={() => { setSelectedDesign(d); setDesignModalVisible(false); }} style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 18, backgroundColor: selectedDesign === d ? RGF.ink : RGF.surface, borderWidth: 1, borderColor: selectedDesign === d ? RGF.ink : RGF.hair }}>
+                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, color: selectedDesign === d ? RGF.bg : RGF.ink }}>{d}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -264,10 +269,6 @@ export default function ScreenAnalyze() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: RGF.bg,
-  },
-  scrollContent: {
-    paddingTop: 60, paddingHorizontal: 22, paddingBottom: 40,
-  }
+  container: { flex: 1 },
+  scrollContent: { paddingTop: 60, paddingHorizontal: 22 }
 });
