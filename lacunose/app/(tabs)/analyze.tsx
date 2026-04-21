@@ -43,13 +43,13 @@ function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch,
   return (
     <TouchableOpacity activeOpacity={onPress ? 0.7 : 1} onPress={onPress} style={{
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      paddingVertical: 14, paddingHorizontal: 18,
+      height: 52, paddingHorizontal: 18,
       borderBottomWidth: last ? 0 : 1, borderBottomColor: RGF.hair,
     }}>
       <Text style={{ fontFamily: RGF.sansMedium, fontSize: 14, color: RGF.ink }}>{label}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         {isSwitch ? (
-          <Switch value={switchValue} onValueChange={onSwitch} trackColor={{ false: RGF.hair, true: RGF.ink }} thumbColor="#fff" style={{ transform: [{ scale: 0.8 }] }} />
+          <Switch value={switchValue} onValueChange={onSwitch} trackColor={{ false: RGF.hair, true: RGF.ink }} thumbColor="#fff" style={{ transform: [{ scale: 0.75 }] }} />
         ) : (
           <>
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: muted ? RGF.muted : RGF.ink }}>{value}</Text>
@@ -169,7 +169,6 @@ export default function ScreenAnalyze() {
           />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <ChipIcon name="paperclip" size={32} iconSize={14} bg={RGF.bg} />
               <ChipIcon name="mic" size={32} iconSize={14} bg={RGF.bg} />
             </View>
             <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>{topic.length} / 240</Text>

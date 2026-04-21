@@ -25,6 +25,7 @@ export default function ScreenMe() {
   const insets = useSafeAreaInsets();
   
   const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [isOrgModalOpen, setOrgModalOpen] = useState(false);
 
   const savedGaps = [
@@ -92,7 +93,8 @@ export default function ScreenMe() {
 
         <View style={{ backgroundColor: '#fff', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 4, borderWidth: 1, borderColor: RGF.hair }}>
           <SettingRow icon="person" label="Edit Profile" onPress={() => setEditModalOpen(true)} />
-          <SettingRow icon="book" label="Organization ID" onPress={() => setOrgModalOpen(true)} />
+          <SettingRow icon="lock" label="Change Password" onPress={() => setPasswordModalOpen(true)} />
+          <SettingRow icon="book" label="ORCID Integration" onPress={() => setOrgModalOpen(true)} />
           <SettingRow icon="bell" label="Notifications" onPress={() => router.push('/notifications')} />
           <SettingRow icon="mic" label="Contact Support" onPress={() => router.push('/support')} />
         </View>
@@ -123,6 +125,10 @@ export default function ScreenMe() {
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Email Address</Text>
                 <TextInput defaultValue="seif@researcher.edu" style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
               </View>
+              <View style={{ backgroundColor: '#fff', borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
+                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Phone Number</Text>
+                <TextInput defaultValue="+1 415 555 0192" keyboardType="phone-pad" style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
+              </View>
             </View>
             <TouchableOpacity onPress={() => setEditModalOpen(false)} style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 32 }}>
               <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: '#fff' }}>Save Changes</Text>
@@ -131,28 +137,62 @@ export default function ScreenMe() {
         </View>
       </Modal>
 
-      {/* Org ID Modal */}
+      {/* Change Password Modal */}
+      <Modal visible={isPasswordModalOpen} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: RGF.bg, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, paddingBottom: Math.max(40, insets.bottom + 20) }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+              <Text style={{ fontFamily: RGF.display, fontSize: 26, color: RGF.ink }}>Change Password</Text>
+              <TouchableOpacity onPress={() => setPasswordModalOpen(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="close" size={14} color={RGF.ink} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ gap: 16 }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
+                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Current Password</Text>
+                <TextInput secureTextEntry placeholder="••••••••" placeholderTextColor={RGF.muted} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
+              </View>
+              <View style={{ backgroundColor: '#fff', borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
+                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>New Password</Text>
+                <TextInput secureTextEntry placeholder="••••••••" placeholderTextColor={RGF.muted} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
+              </View>
+              <View style={{ backgroundColor: '#fff', borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
+                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Confirm New Password</Text>
+                <TextInput secureTextEntry placeholder="••••••••" placeholderTextColor={RGF.muted} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} />
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setPasswordModalOpen(false)} style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 32 }}>
+              <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: '#fff' }}>Update Password</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ORCID Modal */}
       <Modal visible={isOrgModalOpen} animationType="slide" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: RGF.bg, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 26, paddingBottom: Math.max(40, insets.bottom + 20) }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ fontFamily: RGF.display, fontSize: 26, color: RGF.ink }}>Organization</Text>
+              <Text style={{ fontFamily: RGF.display, fontSize: 26, color: RGF.ink }}>ORCID Integration</Text>
               <TouchableOpacity onPress={() => setOrgModalOpen(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="close" size={14} color={RGF.ink} />
               </TouchableOpacity>
             </View>
             <Text style={{ fontFamily: RGF.sans, fontSize: 14, color: RGF.inkSoft, marginBottom: 24, lineHeight: 20 }}>
-              Your workspace is currently linked to an academic institution, unlocking expanded limits.
+              Verify your identity by connecting your Open Researcher and Contributor ID to Lacunose.
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingVertical: 18, paddingHorizontal: 20, borderWidth: 1, borderColor: RGF.hair, justifyContent: 'space-between' }}>
-              <View>
-                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Academic ID</Text>
-                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 18, color: RGF.ink }}>UCB-9982-A</Text>
+            
+            <TouchableOpacity onPress={() => {}} activeOpacity={0.8} style={{ backgroundColor: '#fff', borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#A6CE39', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="link" size={18} color="#fff" />
               </View>
-              <View style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 99, backgroundColor: RGF.bg }}>
-                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink }}>Copy</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 15, color: RGF.ink }}>Connect ORCID</Text>
+                <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>16-digit researcher ID</Text>
               </View>
-            </View>
+              <Icon name="chevR" size={16} color={RGF.muted} />
+            </TouchableOpacity>
+            
             <TouchableOpacity onPress={() => setOrgModalOpen(false)} style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 32 }}>
               <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: '#fff' }}>Done</Text>
             </TouchableOpacity>
