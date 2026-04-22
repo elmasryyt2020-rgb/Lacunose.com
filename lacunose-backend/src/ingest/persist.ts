@@ -224,17 +224,22 @@ async function insertAbstractSections(rows: Paper[]): Promise<void> {
   const withAbs = rows.filter((r) => r.abstract && r.abstract.length > 0);
   if (withAbs.length === 0) return;
 
-  // Fetch existing abstract sections in one shot
+  // Fetch existing abstract sections — batched because PostgREST encodes
+  // `in.(…)` into the URL and 2,000+ UUIDs blows past Kong's ~8KB URI limit.
   const ids = withAbs.map((r) => r.id);
-  const { data: existing, error } = await sb
-    .from('paper_sections')
-    .select('paper_id,kind')
-    .in('paper_id', ids)
-    .eq('kind', 'abstract');
-  if (error) {
-    logger.warn('paper_sections lookup failed', { error: error.message });
+  const have = new Set<string>();
+  for (const batch of chunks(ids, 200)) {
+    const { data: existing, error } = await sb
+      .from('paper_sections')
+      .select('paper_id,kind')
+      .in('paper_id', batch)
+      .eq('kind', 'abstract');
+    if (error) {
+      logger.warn('paper_sections lookup failed', { error: error.message, batchSize: batch.length });
+      continue;
+    }
+    for (const row of existing ?? []) have.add((row as { paper_id: string }).paper_id);
   }
-  const have = new Set((existing ?? []).map((r: { paper_id: string }) => r.paper_id));
 
   const newRows = withAbs
     .filter((r) => !have.has(r.id))

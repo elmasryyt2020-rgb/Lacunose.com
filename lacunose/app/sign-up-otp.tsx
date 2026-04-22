@@ -16,8 +16,11 @@ export default function ScreenOTP() {
   const { RGF } = useTheme();
   const insets = useSafeAreaInsets();
   // Params may legitimately be undefined on a cold deep-link.
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; first?: string; last?: string; phone?: string }>();
   const email = typeof params.email === 'string' ? params.email : '';
+  const firstName = typeof params.first === 'string' ? params.first : '';
+  const lastName = typeof params.last === 'string' ? params.last : '';
+  const phone = typeof params.phone === 'string' ? params.phone : '';
   const [token, setToken] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
@@ -51,6 +54,21 @@ export default function ScreenOTP() {
       }
       const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
       if (error) throw error;
+
+      // Attach the sign-up metadata if we carried any fields from the previous screen.
+      // Best-effort — a failure here shouldn't block the user from entering the app.
+      const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+      const metadata: Record<string, string> = {};
+      if (fullName) metadata.full_name = fullName;
+      if (phone) metadata.phone = phone;
+      if (Object.keys(metadata).length > 0) {
+        try {
+          await supabase.auth.updateUser({ data: metadata });
+        } catch (metaErr) {
+          Sentry.captureException(metaErr);
+        }
+      }
+
       router.replace('/(tabs)/home');
     } catch (e) {
       Sentry.captureException(e);

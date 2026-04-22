@@ -64,7 +64,13 @@ const worker = new Worker<ParseJob>(
 
     logger.info('done', { paper_id, sections: rows.length });
   },
-  { ...bullConnection(), concurrency: 1 },
+  {
+    ...bullConnection(),
+    concurrency: 1,
+    // PyMuPDF subprocess + network PDF fetch can be 30-60s per paper.
+    lockDuration: 180_000,
+    stalledInterval: 60_000,
+  },
 );
 
 worker.on('failed', (job, err) => {

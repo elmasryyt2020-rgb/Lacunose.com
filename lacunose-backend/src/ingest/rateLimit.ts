@@ -121,7 +121,9 @@ export function limiterFor(source: string, ratePerSec: number, burst?: number): 
 /** Default per-source limits used throughout the ingest layer. */
 export const DEFAULT_LIMITS: Record<string, { rate: number; burst: number }> = {
   openalex:  { rate: 10,    burst: 10 },
-  s2:        { rate: 1,     burst: 1 },
+  // S2 anonymous tier returns 429 well before 1 req/s. Throttle to 1 per 3s
+  // until authenticated — at which point this should be bumped back to 10/s.
+  s2:        { rate: 0.33,  burst: 1 },
   crossref:  { rate: 50,    burst: 50 },
   pubmed:    { rate: 10,    burst: 10 },
   europepmc: { rate: 10,    burst: 10 },

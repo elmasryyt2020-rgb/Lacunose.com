@@ -32,12 +32,16 @@ const logger = log.child('gap:pipeline');
 
 export interface RunGapOpts {
   analysisId: string;
-  userId: string;
+  userId: string | null;
   topic: string;
   field: string;
   structuredFrame?: StructuredFrameValue;
   paperIds: string[];
   signal?: AbortSignal;
+  /**
+   * Anonymous onboarding runs cap the final gap count to 3. Default: 10.
+   */
+  isAnonymous?: boolean;
 }
 
 const MIN_SIGNALS = 5;
@@ -120,7 +124,9 @@ async function runGapAnalysisImpl(opts: RunGapOpts): Promise<void> {
         })
         .eq('id', analysisId);
       // Refund quota — user got nothing useful, same policy as corpus-empty.
-      try { await sb.rpc('decrement_analyses_used', { p_user: userId }); } catch { /* swallow */ }
+      if (userId) {
+        try { await sb.rpc('decrement_analyses_used', { p_user: userId }); } catch { /* swallow */ }
+      }
       return;
     }
 
@@ -168,7 +174,8 @@ async function runGapAnalysisImpl(opts: RunGapOpts): Promise<void> {
 
     // 5d. rank + trim
     const rankT0 = Date.now();
-    const ranked = rankGaps(grounded).slice(0, 10);
+    const topN = opts.isAnonymous ? 3 : 10;
+    const ranked = rankGaps(grounded, { topN });
     logger.info('phase: rank', {
       analysisId,
       inputCount: grounded.length,
@@ -261,7 +268,9 @@ async function runGapAnalysisImpl(opts: RunGapOpts): Promise<void> {
         })
         .eq('id', analysisId);
       // Refund the quota slot so the user isn't charged for a failed analysis.
-      try { await sb.rpc('decrement_analyses_used', { p_user: userId }); } catch { /* swallow */ }
+      if (userId) {
+        try { await sb.rpc('decrement_analyses_used', { p_user: userId }); } catch { /* swallow */ }
+      }
     } catch (writeErr) {
       logger.error('failed-status write itself failed', {
         analysisId,
@@ -297,22 +306,28 @@ async function loadPaperMeta(paperIds: string[]): Promise<Map<string, PaperMeta>
   if (paperIds.length === 0) return out;
   const unique = Array.from(new Set(paperIds));
   const sb = supabaseAdmin();
-  const { data, error } = await sb
-    .from('papers')
-    .select('id, title, year, venue, authors')
-    .in('id', unique);
-  if (error) {
-    logger.warn('loadPaperMeta failed', { error: error.message });
-    return out;
-  }
-  for (const row of (data ?? []) as PaperRow[]) {
-    out.set(row.id, {
-      id: row.id,
-      title: row.title ?? '',
-      year: row.year,
-      venue: row.venue,
-      authors_short: shortAuthors(row.authors),
-    });
+  // Batch: Kong fronts PostgREST and rejects requests with URI > ~8KB;
+  // ~200 UUIDs per batch keeps us safely under.
+  const BATCH = 200;
+  for (let i = 0; i < unique.length; i += BATCH) {
+    const batch = unique.slice(i, i + BATCH);
+    const { data, error } = await sb
+      .from('papers')
+      .select('id, title, year, venue, authors')
+      .in('id', batch);
+    if (error) {
+      logger.warn('loadPaperMeta batch failed', { error: error.message, batchSize: batch.length });
+      continue;
+    }
+    for (const row of (data ?? []) as PaperRow[]) {
+      out.set(row.id, {
+        id: row.id,
+        title: row.title ?? '',
+        year: row.year,
+        venue: row.venue,
+        authors_short: shortAuthors(row.authors),
+      });
+    }
   }
   return out;
 }

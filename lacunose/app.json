@@ -59,7 +59,7 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_REVERSED_CLIENT_ID"
+          "iosUrlScheme": "com.googleusercontent.apps.685827761344-i8fha78fkud0tgtopi60f433b61gs7kj"
         }
       ],
       [
@@ -70,14 +70,16 @@
         }
       ]
     ],
-    "extra": {
-      "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
-      }
-    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "19ec9c3d-5b87-4097-8220-7dbaece490d5"
+      }
+    },
+    "owner": "seif.ahmed"
   }
 }

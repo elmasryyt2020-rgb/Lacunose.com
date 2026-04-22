@@ -31,9 +31,14 @@ interface Scored {
 }
 
 /**
- * Score, dedupe, and truncate to the top-10.
+ * Score, dedupe, and truncate to the top-N.
+ *
+ * @param candidates  map/reduce/critique survivors
+ * @param opts.topN   cap on output. Defaults to 10 for auth runs;
+ *                    anonymous onboarding passes 3 so the teaser is cheap.
  */
-export function rankGaps(candidates: CandidateGap[]): CandidateGap[] {
+export function rankGaps(candidates: CandidateGap[], opts: { topN?: number } = {}): CandidateGap[] {
+  const topN = opts.topN ?? 10;
   if (candidates.length === 0) return [];
   const t0 = Date.now();
 
@@ -69,7 +74,7 @@ export function rankGaps(candidates: CandidateGap[]): CandidateGap[] {
   const kept = scored
     .filter((s) => !s.dropped)
     .sort((x, y) => y.score - x.score)
-    .slice(0, 10);
+    .slice(0, topN);
 
   const out: CandidateGap[] = kept.map((s) => ({
     ...s.candidate,

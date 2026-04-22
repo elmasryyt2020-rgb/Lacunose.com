@@ -6,9 +6,11 @@ import { Session, User } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { initBilling } from '../lib/billing/revenuecat';
+import { claimAnonymousIfPending } from '../lib/onboarding';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'mock_client_id',
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
 });
 
 type AuthContextType = {
@@ -51,9 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session?.user && session.access_token) {
         // initBilling is internally guarded; safe to call but won't reconfigure.
         void initBilling(session.user.id);
+        // Transfer any pending onboarding teaser analysis to this user's
+        // library. No-op if nothing is pending.
+        void claimAnonymousIfPending(session.access_token);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -61,8 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session?.user && session.access_token) {
         void initBilling(session.user.id);
+        void claimAnonymousIfPending(session.access_token);
       }
     });
 

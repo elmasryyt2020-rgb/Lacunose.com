@@ -7,24 +7,80 @@ import { useAnalysis } from '../../hooks/useAnalyses';
 import { useGapStream } from '../../hooks/useGapStream';
 import { FRAMES } from '../../lib/fields/frames';
 
-function StreamStatus() {
+/**
+ * Maps the `gap_analyses.status` + live gap count to the user-facing pipeline
+ * stages. The backend only emits a handful of statuses (queued/running/done/
+ * failed), but the user wants to see meaningful progress — so we infer stage
+ * from (status, gapsSoFar, elapsedMs).
+ */
+function StreamStatus({ status, gapsSoFar, startedAt }: { status: string; gapsSoFar: number; startedAt: string | null | undefined }) {
   const { RGF } = useTheme();
-  const steps = [
-    { label: 'Fetched 512 papers', done: true },
-    { label: 'Parsed 187 full texts', done: true },
-    { label: 'Clustered into 6 sub-topics', done: true },
-    { label: 'Synthesizing gaps…', active: true },
+
+  // Tick every 1s so "elapsed" updates live.
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const elapsedSec = startedAt ? Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000)) : 0;
+
+  // Derive a synthetic 4-stage pipeline view from status + elapsed + gaps.
+  // Real backend stages (ingest/parse/embed/gap/critique) don't map cleanly
+  // to user-friendly labels, so we collapse them by time elapsed.
+  type Stage = { label: string; done: boolean; active: boolean };
+  const stages: Stage[] = [
+    {
+      label: 'Queued analysis',
+      done: status === 'running' || status === 'done' || status === 'failed' || elapsedSec >= 2,
+      active: status === 'queued',
+    },
+    {
+      label: 'Fetching papers from 5 sources',
+      done: status === 'done' || status === 'failed' || elapsedSec >= 60,
+      active: status === 'running' && elapsedSec < 60,
+    },
+    {
+      label: 'Reading abstracts + extracting signals',
+      done: status === 'done' || status === 'failed' || gapsSoFar > 0 || elapsedSec >= 120,
+      active: status === 'running' && elapsedSec >= 60 && gapsSoFar === 0,
+    },
+    {
+      label: gapsSoFar > 0 ? `Synthesizing gaps — ${gapsSoFar} found` : 'Synthesizing gaps',
+      done: status === 'done' || status === 'failed',
+      active: status === 'running' && gapsSoFar > 0,
+    },
   ];
+  const doneCount = stages.filter((s) => s.done).length;
+
+  // ETA: most analyses run 60-180s. We show a decaying estimate so it doesn't
+  // stick at "30s remaining" forever.
+  const totalEstimate = 180;
+  const remaining = Math.max(5, totalEstimate - elapsedSec);
+  const pct = Math.min(95, Math.round((elapsedSec / totalEstimate) * 100));
+
+  if (status === 'failed') {
+    return (
+      <View style={{ backgroundColor: RGF.surface, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 18, marginBottom: 20, borderWidth: 1, borderColor: RGF.rose ?? RGF.hair }}>
+        <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 14, color: RGF.ink, marginBottom: 4 }}>Analysis failed</Text>
+        <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>Please try again. If this persists, contact support.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ backgroundColor: RGF.surface, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 18, marginBottom: 20, borderWidth: 1, borderColor: RGF.hair }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 13, color: RGF.ink }}>3 of 4 steps</Text>
-        <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>~20s remaining</Text>
+        <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 13, color: RGF.ink }}>
+          {doneCount} of {stages.length} steps · {elapsedSec}s
+        </Text>
+        <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>
+          ~{remaining}s remaining
+        </Text>
       </View>
       <View style={{ height: 4, borderRadius: 2, backgroundColor: RGF.bg, overflow: 'hidden', marginBottom: 14 }}>
-        <View style={{ height: '100%', width: '75%', backgroundColor: RGF.ink, borderRadius: 2 }} />
+        <View style={{ height: '100%', width: `${pct}%`, backgroundColor: RGF.ink, borderRadius: 2 }} />
       </View>
-      {steps.map((s, i) => (
+      {stages.map((s, i) => (
         <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
           {s.done ? (
             <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: RGF.ink, alignItems: 'center', justifyContent: 'center' }}>
@@ -138,7 +194,13 @@ export default function ScreenResults() {
           {analysis?.topic || 'Loading...'}
         </Text>
 
-        {isPending && <StreamStatus />}
+        {isPending && (
+          <StreamStatus
+            status={analysis?.status ?? 'queued'}
+            gapsSoFar={allGaps.length}
+            startedAt={analysis?.created_at}
+          />
+        )}
 
         <View style={{ gap: 12 }}>
           {allGaps.map((g: any) => {

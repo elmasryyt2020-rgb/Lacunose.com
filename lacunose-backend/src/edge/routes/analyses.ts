@@ -38,6 +38,36 @@ const CreateAnalysisSchema = z.object({
   concept_id: z.string().optional(),
 }) satisfies z.ZodType<CreateAnalysisRequest>;
 
+const CreateAnonymousAnalysisSchema = z.object({
+  topic: z.string().min(3).max(500),
+  field: z.string().min(1).max(64),
+  structured_frame: z.record(z.string(), z.string()).optional(),
+  // Device ID is any stable unguessable string the mobile app generates once
+  // on first launch (AsyncStorage). Used for rate-limiting + binding the
+  // claim token to the device.
+  device_id: z.string().min(8).max(128),
+});
+
+const ClaimAnalysisSchema = z.object({
+  claim_token: z.string().min(16).max(128),
+});
+
+function clientIp(req: { ip?: string; headers: Record<string, string | string[] | undefined> }): string {
+  // Caddy sets X-Forwarded-For. Fall back to req.ip (Fastify) otherwise.
+  const fwd = req.headers['x-forwarded-for'];
+  const raw = Array.isArray(fwd) ? fwd[0] : fwd;
+  if (raw) return (raw.split(',')[0] ?? '').trim();
+  return req.ip ?? 'unknown';
+}
+
+function randomClaimToken(): string {
+  // 32 hex chars = 128 bits. crypto.randomUUID() format works but we want
+  // a flat string with no dashes so it's URL-safe.
+  return [...crypto.getRandomValues(new Uint8Array(16))]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 const ExportSchema = z.object({
   format: z.enum(['pdf', 'md']),
 });
@@ -212,7 +242,7 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     };
     try {
       await ingestQueue.add('ingest', job, {
-        jobId: `ingest:${inserted.id}`,
+        jobId: `ingest-${inserted.id}`,
         removeOnComplete: 1000,
         removeOnFail: 1000,
         attempts: 3,
@@ -458,6 +488,202 @@ const plugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       });
       reply.send(resp);
     }
+  );
+
+  // POST /v1/analyses/anonymous — create a teaser analysis for onboarding.
+  // No JWT required. Rate-limited per device AND per IP to prevent abuse.
+  fastify.post('/v1/analyses/anonymous', async (req, reply) => {
+    const started = Date.now();
+    const parsed = CreateAnonymousAnalysisSchema.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400).send({ error: 'invalid_body', details: parsed.error.flatten() });
+      return;
+    }
+    const { topic, field, structured_frame, device_id } = parsed.data;
+    const ip = clientIp(req);
+
+    const sb = supabaseAdmin();
+
+    // Rate limit: 2 anonymous analyses per device per 24h, 5 per IP per 24h.
+    // Exceeding either cap returns 429 — gently guides abusers toward the
+    // authenticated flow.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: deviceCount } = await sb
+      .from('gap_analyses')
+      .select('id', { count: 'exact', head: true })
+      .eq('anonymous_device_id', device_id)
+      .gte('created_at', since);
+    if ((deviceCount ?? 0) >= 2) {
+      reply.code(429).send({ error: 'anon_device_rate_limited', retry_after_sec: 86400 });
+      return;
+    }
+    const { count: ipCount } = await sb
+      .from('gap_analyses')
+      .select('id', { count: 'exact', head: true })
+      .eq('anonymous_ip', ip)
+      .gte('created_at', since);
+    if ((ipCount ?? 0) >= 5) {
+      reply.code(429).send({ error: 'anon_ip_rate_limited', retry_after_sec: 86400 });
+      return;
+    }
+
+    const claimToken = randomClaimToken();
+    const claimExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: inserted, error: insertErr } = await sb
+      .from('gap_analyses')
+      .insert({
+        user_id: null,
+        topic,
+        field,
+        structured_frame: structured_frame ?? null,
+        filters: null,
+        status: 'queued',
+        is_anonymous: true,
+        anonymous_claim_token: claimToken,
+        anonymous_device_id: device_id,
+        anonymous_ip: ip,
+        claim_expires_at: claimExpires,
+      })
+      .select('id, status')
+      .single();
+
+    if (insertErr || !inserted) {
+      logger.error('anon_analysis_insert_failed', { reqId: req.id, err: insertErr?.message });
+      reply.code(500).send({ error: 'insert_failed' });
+      return;
+    }
+
+    const job: IngestJob = {
+      analysis_id: inserted.id,
+      user_id: null,
+      topic,
+      field,
+      ...(structured_frame ? { structured_frame } : {}),
+      is_anonymous: true,
+    };
+
+    try {
+      await ingestQueue.add('ingest', job, {
+        jobId: `ingest-${inserted.id}`,
+        removeOnComplete: 1000,
+        removeOnFail: 1000,
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10_000 },
+      });
+    } catch (err) {
+      await sb.from('gap_analyses').delete().eq('id', inserted.id);
+      logger.error('anon_analysis_enqueue_failed', {
+        reqId: req.id,
+        err: err instanceof Error ? err.message : String(err),
+      });
+      reply.code(503).send({ error: 'queue_unavailable' });
+      return;
+    }
+
+    logger.info('anon_analysis_created', {
+      reqId: req.id,
+      analysisId: inserted.id,
+      deviceId: device_id.slice(0, 8),
+      latencyMs: Date.now() - started,
+    });
+    reply.code(201).send({
+      id: inserted.id,
+      status: 'queued',
+      claim_token: claimToken,
+      claim_expires_at: claimExpires,
+    });
+  });
+
+  // GET /v1/analyses/anonymous/:id — poll status + gaps for an anonymous run.
+  // Gates access with the claim_token query param so random IDs can't be
+  // enumerated. Intentionally unauthenticated.
+  fastify.get<{ Params: { id: string }; Querystring: { token?: string } }>(
+    '/v1/analyses/anonymous/:id',
+    async (req, reply) => {
+      const id = req.params.id;
+      const token = req.query.token;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+        reply.code(400).send({ error: 'invalid_id' });
+        return;
+      }
+      if (!token || token.length < 16) {
+        reply.code(401).send({ error: 'missing_token' });
+        return;
+      }
+
+      const sb = supabaseAdmin();
+      const { data: analysis, error } = await sb
+        .from('gap_analyses')
+        .select('id, topic, field, status, error, created_at, completed_at, is_anonymous, anonymous_claim_token')
+        .eq('id', id)
+        .maybeSingle();
+      if (error || !analysis) {
+        reply.code(404).send({ error: 'not_found' });
+        return;
+      }
+      if (!analysis.is_anonymous || analysis.anonymous_claim_token !== token) {
+        // Don't leak existence of the row — return the same error as not-found.
+        reply.code(404).send({ error: 'not_found' });
+        return;
+      }
+
+      const { data: gaps, error: gErr } = await sb
+        .from('gap_items')
+        .select('*')
+        .eq('analysis_id', id)
+        .order('rank', { ascending: true });
+      if (gErr) {
+        reply.code(500).send({ error: 'gap_items_failed' });
+        return;
+      }
+
+      // Drop the claim_token from the response — mobile already has it.
+      const { anonymous_claim_token: _omit, ...safe } = analysis as typeof analysis;
+      reply.send({ analysis: safe, gaps: gaps ?? [] });
+    },
+  );
+
+  // POST /v1/analyses/:id/claim — transfer ownership from anonymous to
+  // the authenticated user. Called by the mobile app after signup if it
+  // has a pending claim token in AsyncStorage.
+  fastify.post<{ Params: { id: string } }>(
+    '/v1/analyses/:id/claim',
+    { preHandler: [fastify.authenticate] },
+    async (req, reply) => {
+      const user = req.user!;
+      const id = req.params.id;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+        reply.code(400).send({ error: 'invalid_id' });
+        return;
+      }
+      const parsed = ClaimAnalysisSchema.safeParse(req.body);
+      if (!parsed.success) {
+        reply.code(400).send({ error: 'invalid_body', details: parsed.error.flatten() });
+        return;
+      }
+      const { claim_token } = parsed.data;
+
+      const sb = supabaseAdmin();
+      const { data: ok, error: rpcErr } = await sb
+        .rpc('claim_anonymous_analysis', {
+          p_analysis_id: id,
+          p_claim_token: claim_token,
+          p_user_id: user.id,
+        });
+      if (rpcErr) {
+        logger.error('claim_rpc_failed', { reqId: req.id, userId: user.id, err: rpcErr.message });
+        reply.code(500).send({ error: 'claim_failed' });
+        return;
+      }
+      if (ok !== true) {
+        reply.code(404).send({ error: 'not_found_or_expired' });
+        return;
+      }
+
+      logger.info('analysis_claimed', { reqId: req.id, userId: user.id, analysisId: id });
+      reply.send({ ok: true, id });
+    },
   );
 };
 

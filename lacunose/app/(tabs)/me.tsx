@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, CategoryPill } from '../../components/Shared';
 import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
 import { useEntitlement } from '../../hooks/useEntitlement';
 import { useSavedGaps } from '../../hooks/useSavedGaps';
 import { FRAMES } from '../../lib/fields/frames';
@@ -59,6 +60,45 @@ export default function ScreenMe() {
       ?? 'User'
   );
   const displayEmail = user?.email ?? '';
+  const initialPhone = String((meta.phone as string | undefined) ?? '');
+
+  // Edit profile form state
+  const [editName, setEditName] = useState(displayName);
+  const [editPhone, setEditPhone] = useState(initialPhone);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Reset edit form values every time the modal opens (so cancel works).
+  React.useEffect(() => {
+    if (isEditModalOpen) {
+      setEditName(displayName);
+      setEditPhone(initialPhone);
+    }
+  }, [isEditModalOpen, displayName, initialPhone]);
+
+  const saveProfile = async () => {
+    if (savingProfile) return;
+    setSavingProfile(true);
+    try {
+      const trimmedPhone = editPhone.trim();
+      // Loose international-format check: optional +, 7-15 digits, spaces/dashes ok.
+      if (trimmedPhone && !/^\+?[0-9][\d\s\-]{6,20}$/.test(trimmedPhone)) {
+        Alert.alert('Check your phone number', 'Use international format, e.g. +20 123 456 7890.');
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: editName.trim() || displayName,
+          phone: trimmedPhone,
+        },
+      });
+      if (error) throw error;
+      setEditModalOpen(false);
+    } catch (e) {
+      Alert.alert('Could not save', (e as Error)?.message ?? 'Please try again.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Load analytics opt-out preference.
   React.useEffect(() => {
@@ -202,7 +242,8 @@ export default function ScreenMe() {
         <View style={{ backgroundColor: RGF.surface, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 4, borderWidth: 1, borderColor: RGF.hair }}>
           <SettingRow icon="person" label="Edit Profile" onPress={() => setEditModalOpen(true)} />
           <SettingRow icon="lock" label="Change Password" onPress={() => setPasswordModalOpen(true)} />
-          <SettingRow icon="book" label="ORCID Integration" onPress={() => setOrgModalOpen(true)} />
+          {/* ORCID integration — hidden for hackathon; re-enable once real OAuth is wired. */}
+          {/* <SettingRow icon="book" label="ORCID Integration" onPress={() => setOrgModalOpen(true)} /> */}
           <SettingRow icon="bell" label="Notifications" onPress={() => router.push('/notifications')} />
           <SettingRow icon="mail" label="Contact Support" onPress={() => router.push('/support')} />
           <SettingRow icon="bookmark" label="Restore Purchases" onPress={handleRestore} />
@@ -237,16 +278,41 @@ export default function ScreenMe() {
             <View style={{ gap: 16 }}>
               <View style={{ backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Full Name</Text>
-                <TextInput defaultValue={displayName} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} editable={false} />
-                <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted, marginTop: 4 }}>Coming soon — edit your display name in a later release.</Text>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Your name"
+                  placeholderTextColor={RGF.muted}
+                  style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink, padding: 0 }}
+                />
               </View>
               <View style={{ backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
                 <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Email Address</Text>
-                <TextInput defaultValue={displayEmail} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink }} editable={false} />
+                <TextInput value={displayEmail} style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink, padding: 0 }} editable={false} />
+              </View>
+              <View style={{ backgroundColor: RGF.surface, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: RGF.hair }}>
+                <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Phone</Text>
+                <TextInput
+                  value={editPhone}
+                  onChangeText={setEditPhone}
+                  placeholder="+20 123 456 7890"
+                  placeholderTextColor={RGF.muted}
+                  keyboardType="phone-pad"
+                  style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.ink, padding: 0 }}
+                />
+                <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted, marginTop: 4 }}>
+                  Used to contact you about your account. See Privacy Policy.
+                </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={() => setEditModalOpen(false)} style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 32 }}>
-              <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg }}>Save Changes</Text>
+            <TouchableOpacity
+              onPress={saveProfile}
+              disabled={savingProfile}
+              activeOpacity={0.8}
+              style={{ backgroundColor: RGF.ink, paddingVertical: 20, borderRadius: 28, alignItems: 'center', marginTop: 32, opacity: savingProfile ? 0.6 : 1 }}>
+              <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 17, color: RGF.bg }}>
+                {savingProfile ? 'Saving…' : 'Save Changes'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

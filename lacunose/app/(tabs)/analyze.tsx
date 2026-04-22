@@ -33,13 +33,14 @@ function FilterRow({ label, value, muted, last, isSwitch, switchValue, onSwitch,
   );
 }
 
-function FrameRow({ letter, label, value, onChange, color }: any) {
+function FrameRow({ letter, label, value, onChange, color, placeholder }: any) {
   const { RGF } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
+  const isEmpty = !value;
 
   return (
-    <TouchableOpacity 
-      activeOpacity={0.9} 
+    <TouchableOpacity
+      activeOpacity={0.9}
       onPress={() => setIsEditing(true)}
       style={{
         backgroundColor: RGF.surface, borderRadius: 18, padding: 12,
@@ -61,9 +62,13 @@ function FrameRow({ letter, label, value, onChange, color }: any) {
             value={value}
             onChangeText={onChange}
             onBlur={() => setIsEditing(false)}
+            placeholder={placeholder}
+            placeholderTextColor={RGF.muted}
           />
         ) : (
-          <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.ink }} numberOfLines={1}>{value}</Text>
+          <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: isEmpty ? RGF.muted : RGF.ink }} numberOfLines={1}>
+            {isEmpty ? (placeholder ?? 'Tap to add') : value}
+          </Text>
         )}
       </View>
       {isEditing ? (
@@ -101,12 +106,15 @@ export default function ScreenAnalyze() {
   const currentFrame = FRAMES[fieldSelection.frameId] || FRAMES['generic'];
 
   // Frame values keyed by row.key ('P','I','C','O', …).
-  // Reset to the template's `example` defaults whenever the field changes.
+  // Start empty — the `example` from frames.ts is used as a placeholder hint,
+  // not a default fill, so the user isn't surprised by pre-filled rows that
+  // don't match their actual topic.
   const [frameValues, setFrameValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(currentFrame.rows.map(r => [r.key, r.example ?? '']))
+    Object.fromEntries(currentFrame.rows.map(r => [r.key, '']))
   );
   useEffect(() => {
-    setFrameValues(Object.fromEntries(currentFrame.rows.map(r => [r.key, r.example ?? ''])));
+    // Clear — not seed with examples — when the field changes, so labels stay honest.
+    setFrameValues(Object.fromEntries(currentFrame.rows.map(r => [r.key, ''])));
   }, [fieldSelection.frameId, fieldSelection.openalexId]);
 
   const yearsRange = useMemo<[number, number] | undefined>(() => {
@@ -232,7 +240,7 @@ export default function ScreenAnalyze() {
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Icon name="sparkle" size={14} color={RGF.muted} />
-              <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>Auto-filled</Text>
+              <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>Optional</Text>
             </View>
           </View>
           
@@ -245,6 +253,7 @@ export default function ScreenAnalyze() {
                 value={frameValues[r.key] ?? ''}
                 onChange={(v: string) => setFrameValues(prev => ({ ...prev, [r.key]: v }))}
                 color={(RGF as any)[r.color]}
+                placeholder={r.placeholder}
               />
             ))}
           </View>

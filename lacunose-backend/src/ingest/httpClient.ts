@@ -39,6 +39,9 @@ export interface GetOptions {
 
 const USER_AGENT = `Lacunose/1.0 (mailto:${env.POLITE_EMAIL})`;
 const BACKOFF_MS = [500, 2_000, 8_000];
+// 429s need longer waits than 5xx — especially S2's anonymous tier which
+// returns 429 aggressively and ignores retries within a short window.
+const BACKOFF_429_MS = [5_000, 15_000, 30_000];
 
 /** Transient network errors that should trigger a retry. */
 const TRANSIENT_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED']);
@@ -118,7 +121,10 @@ async function httpFetch(url: string, opts: GetOptions = {}): Promise<{ status: 
       opts.signal?.removeEventListener('abort', onAbort);
     }
 
-    const backoff = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)] ?? 8_000;
+    // Pick a longer backoff for 429 than for 5xx.
+    const was429 = lastErr instanceof HttpError && lastErr.status === 429;
+    const schedule = was429 ? BACKOFF_429_MS : BACKOFF_MS;
+    const backoff = schedule[Math.min(attempt, schedule.length - 1)] ?? (was429 ? 30_000 : 8_000);
     await sleep(backoff);
   }
 

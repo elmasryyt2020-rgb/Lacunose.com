@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { isMockMode } from '../lib/mocks';
@@ -20,7 +21,8 @@ export function useAnalyses(opts?: { limit?: number }) {
 }
 
 export function useAnalysis(id: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ['analysis', id],
     queryFn: async () => {
       if (isMockMode) return mockAnalyses.find(a => a.id === id) || mockAnalyses[0];
@@ -30,5 +32,28 @@ export function useAnalysis(id: string) {
     },
     // Don't fire .eq('id', '').single() when the route hasn't provided an id.
     enabled: !!id,
+    // Poll every 3s while running — Realtime UPDATE events cover most cases
+    // but a fallback poll guarantees we catch `status: 'done'` even if the
+    // websocket blips.
+    refetchInterval: (q) => {
+      const status = (q.state.data as { status?: string } | undefined)?.status;
+      return status && status !== 'done' && status !== 'failed' ? 3000 : false;
+    },
   });
+
+  // Live-update via Realtime UPDATE on the gap_analyses row — instant status
+  // transitions (queued → running → done) without waiting for the 3s poll.
+  useEffect(() => {
+    if (!id || isMockMode) return;
+    const channel = supabase.channel(`gap_analysis_${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'gap_analyses', filter: `id=eq.${id}` },
+        () => { void queryClient.invalidateQueries({ queryKey: ['analysis', id] }); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [id, queryClient]);
+
+  return query;
 }

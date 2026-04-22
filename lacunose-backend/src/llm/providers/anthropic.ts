@@ -135,11 +135,17 @@ export async function chat(
   const tools = translateTools(opts.tools);
 
   const doCall = async () => {
+    // Opus 4.7 deprecated the `temperature` parameter; sending it returns
+    // a 400 invalid_request_error. Haiku 4.5 still accepts it. Only send
+    // when caller explicitly set a value AND the model supports it.
+    const supportsTemperature = !concreteModel.startsWith('claude-opus-4-7');
     return client().messages.create(
       {
         model: concreteModel,
         max_tokens: opts.maxTokens ?? 4096,
-        temperature: opts.temperature ?? 0.2,
+        ...(supportsTemperature && opts.temperature !== undefined
+          ? { temperature: opts.temperature }
+          : {}),
         system,
         messages,
         tools,

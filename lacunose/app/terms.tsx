@@ -1,8 +1,47 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../constants/theme';
 import { ChipIcon } from '../components/Shared';
+
+/* ─────────────────────── helpers ─────────────────────── */
+
+function SectionTitle({ children }: { children: string }) {
+  const { RGF } = useTheme();
+  return (
+    <Text style={[s.sectionTitle, { fontFamily: RGF.display, color: RGF.ink }]}>
+      {children}
+    </Text>
+  );
+}
+
+function P({ children }: { children: React.ReactNode }) {
+  const { RGF } = useTheme();
+  return (
+    <Text style={[s.paragraph, { fontFamily: RGF.sans, color: RGF.inkSoft }]}>
+      {children}
+    </Text>
+  );
+}
+
+function Bullet({ children }: { children: React.ReactNode }) {
+  const { RGF } = useTheme();
+  return (
+    <View style={s.bulletRow}>
+      <Text style={[s.bulletDot, { color: RGF.muted }]}>•</Text>
+      <Text style={[s.bulletText, { fontFamily: RGF.sans, color: RGF.inkSoft }]}>
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+function B({ children }: { children: React.ReactNode }) {
+  const { RGF } = useTheme();
+  return <Text style={{ fontFamily: RGF.sansSemiBold, color: RGF.ink }}>{children}</Text>;
+}
+
+/* ─────────────────────── screen ─────────────────────── */
 
 export default function ScreenTerms() {
   const router = useRouter();
@@ -10,23 +49,212 @@ export default function ScreenTerms() {
 
   return (
     <View style={{ flex: 1, backgroundColor: RGF.bg }}>
-      <ScrollView contentContainerStyle={{ paddingTop: 60, paddingHorizontal: 28, paddingBottom: 60 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 30 }}>
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* header */}
+        <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
           </TouchableOpacity>
         </View>
-        <Text style={{ fontFamily: RGF.display, fontSize: 36, color: RGF.ink, marginBottom: 20 }}>Terms of Service</Text>
-        <Text style={{ fontFamily: RGF.sans, fontSize: 15, color: RGF.inkSoft, lineHeight: 24 }}>
-          Last updated: April 2026{'\n\n'}
-          Welcome to Lacunose. These terms and conditions outline the rules and regulations for the use of our app.{'\n\n'}
-          By accessing this app we assume you accept these terms and conditions. Do not continue to use Lacunose if you do not agree to take all of the terms and conditions stated on this page.{'\n\n'}
-          1. Use of Service{'\n'}
-          You must be at least 18 years of age to use this app. By using this app and by agreeing to these terms and conditions you warrant and represent that you are at least 18 years of age.{'\n\n'}
-          2. Intellectual Property Rights{'\n'}
-          Other than the content you own, under these terms, Lacunose and/or its licensors own all the intellectual property rights and materials contained in this app.
+
+        <Text style={[s.title, { fontFamily: RGF.display, color: RGF.ink }]}>
+          Terms of Service
         </Text>
+        <Text style={[s.updated, { fontFamily: RGF.sans, color: RGF.muted }]}>
+          Last updated: April 22, 2026
+        </Text>
+
+        {/* ── 1. Agreement to Terms ── */}
+        <SectionTitle>1. Agreement to Terms</SectionTitle>
+        <P>
+          These Terms of Service ("Terms") govern your access to and use of the Lacunose mobile application and related services (collectively, the "Service"), operated by Lacunose ("we," "us," or "our"), an LLC registered in Egypt.
+        </P>
+        <P>
+          By creating an account or using the Service, you agree to be bound by these Terms. If you do not agree to these Terms, you must not use the Service.
+        </P>
+
+        {/* ── 2. Eligibility ── */}
+        <SectionTitle>2. Eligibility</SectionTitle>
+        <P>
+          You must be at least <B>13 years of age</B> to use the Service. By using the Service, you represent and warrant that you meet this age requirement. If you are under the age of 18, you represent that you have obtained consent from a parent or legal guardian to use the Service.
+        </P>
+
+        {/* ── 3. Account Responsibilities ── */}
+        <SectionTitle>3. Account Responsibilities</SectionTitle>
+        <P>
+          When you create an account, you are responsible for maintaining the confidentiality of your login credentials and for all activity that occurs under your account. You agree to:
+        </P>
+        <Bullet>Provide accurate and complete information during registration</Bullet>
+        <Bullet>Keep your login credentials secure and confidential</Bullet>
+        <Bullet>Notify us immediately at support@lacunose.com if you suspect unauthorized access to your account</Bullet>
+        <P>
+          We are not liable for any loss or damage arising from your failure to protect your account credentials.
+        </P>
+
+        {/* ── 4. Description of Service ── */}
+        <SectionTitle>4. Description of Service</SectionTitle>
+        <P>
+          Lacunose is an AI-powered research gap analysis tool. The Service allows users to submit research topics and receive AI-generated analyses identifying potential gaps, underexplored areas, and opportunities in academic and scientific literature.
+        </P>
+        <P>
+          The Service includes a free tier with limited usage and paid subscription plans with expanded capabilities. Feature availability may vary by plan and is subject to change.
+        </P>
+
+        {/* ── 5. AI Disclaimer ── */}
+        <SectionTitle>5. AI Disclaimer</SectionTitle>
+        <P>
+          <B>The analyses and research gaps provided by Lacunose are generated by artificial intelligence.</B> While we are highly confident in the quality and utility of our AI-powered analysis, you acknowledge and agree that:
+        </P>
+        <Bullet>AI-generated results <B>do not replace professional academic judgment</B>. Lacunose is a tool that shortens the time needed to identify research gaps and delivers analytics faster — but you must apply your own expertise, critical thinking, and academic judgment to evaluate and act on the results.</Bullet>
+        <Bullet>Results may contain inaccuracies, omissions, or outdated information. AI models are probabilistic and may not reflect the latest developments in a field.</Bullet>
+        <Bullet>You are solely responsible for verifying the accuracy, relevance, and completeness of any analysis before relying on it for academic work, publications, grant applications, or any other purpose.</Bullet>
+        <Bullet>Lacunose does not guarantee that identified gaps have not already been addressed in unpublished or recently published work.</Bullet>
+
+        {/* ── 6. Acceptable Use ── */}
+        <SectionTitle>6. Acceptable Use</SectionTitle>
+        <P>You agree not to use the Service to:</P>
+        <Bullet>Violate any applicable law, regulation, or third-party rights</Bullet>
+        <Bullet>Submit content that is illegal, harmful, threatening, abusive, defamatory, or otherwise objectionable</Bullet>
+        <Bullet>Attempt to reverse engineer, decompile, disassemble, or otherwise extract the source code of the Service or its underlying AI systems</Bullet>
+        <Bullet>Use automated scripts, bots, or scraping tools to access the Service</Bullet>
+        <Bullet>Circumvent usage limits, access controls, or security measures</Bullet>
+        <Bullet>Resell, redistribute, or sublicense access to the Service or its outputs without our prior written consent</Bullet>
+        <Bullet>Interfere with or disrupt the Service's infrastructure or other users' access</Bullet>
+        <P>
+          We reserve the right to suspend or terminate your account if we determine, in our sole discretion, that you have violated these terms.
+        </P>
+
+        {/* ── 7. Intellectual Property ── */}
+        <SectionTitle>7. Intellectual Property</SectionTitle>
+        <P>
+          <B>Our Property:</B> The Lacunose name, logo, app design, underlying technology, AI models, and all related intellectual property are owned by Lacunose or its licensors. You may not copy, modify, distribute, or create derivative works from any part of the Service without our express written permission.
+        </P>
+        <P>
+          <B>Your Content:</B> You retain full ownership of the research queries, topics, and any content you submit to the Service. By submitting content, you grant us a limited, non-exclusive, worldwide license to process, store, and cache your content solely for the purpose of providing and improving the Service. We do not use your content to train or fine-tune AI models.
+        </P>
+
+        {/* ── 8. Subscriptions & Billing ── */}
+        <SectionTitle>8. Subscriptions & Billing</SectionTitle>
+        <P>
+          Lacunose offers both free and paid subscription plans:
+        </P>
+        <Bullet><B>Free Plan:</B> Limited to 3 analyses per month with top-5 gap results.</Bullet>
+        <Bullet><B>Pro Plan:</B> Expanded analysis limits, full gap lists, Zotero integration, and advisor mode. Pricing is displayed at the time of purchase.</Bullet>
+        <P>
+          <B>Free Trial:</B> New subscribers may be eligible for a 7-day free trial of the Pro plan. After the trial period, your subscription will automatically convert to a paid subscription at the price displayed at the time of enrollment, unless you cancel before the trial ends.
+        </P>
+        <P>
+          <B>Billing:</B> All subscriptions are billed through the Apple App Store or Google Play Store. By subscribing, you authorize the applicable store to charge your payment method on a recurring basis.
+        </P>
+        <P>
+          <B>Auto-Renewal:</B> Subscriptions automatically renew at the end of each billing period at the price shown at the time of purchase, unless you cancel before the renewal date.
+        </P>
+        <P>
+          <B>Cancellation:</B> You can cancel your subscription at any time through your device's subscription settings (Apple: Settings → Apple ID → Subscriptions; Android: Play Store → Subscriptions). Cancellation takes effect at the end of the current billing period — you will retain access until then.
+        </P>
+
+        {/* ── 9. No Refunds ── */}
+        <SectionTitle>9. Refund Policy</SectionTitle>
+        <P>
+          All purchases are final. We do not offer direct refunds for subscription fees. If you believe you are entitled to a refund due to a billing error or other issue, you must contact Apple or Google directly through their respective support channels, as they manage all payment processing.
+        </P>
+
+        {/* ── 10. Account Deletion ── */}
+        <SectionTitle>10. Account Deletion</SectionTitle>
+        <P>
+          You may delete your account at any time by navigating to <B>Profile → Delete account</B> in the app. Account deletion is permanent and irreversible. Upon deletion:
+        </P>
+        <Bullet>All personal data associated with your account will be permanently removed from our servers</Bullet>
+        <Bullet>All research queries, analysis results, and saved gaps will be deleted</Bullet>
+        <Bullet>Any active subscription will not be automatically cancelled — you must cancel your subscription separately through your device's subscription settings before deleting your account</Bullet>
+
+        {/* ── 11. Copyright & DMCA ── */}
+        <SectionTitle>11. Copyright & DMCA</SectionTitle>
+        <P>
+          We respect the intellectual property rights of others. If you believe that content available through the Service infringes your copyright, you may submit a takedown notice to us with the following information:
+        </P>
+        <Bullet>A description of the copyrighted work you believe has been infringed</Bullet>
+        <Bullet>A description of where the allegedly infringing material is located within the Service</Bullet>
+        <Bullet>Your contact information (name, email address, and phone number)</Bullet>
+        <Bullet>A statement that you have a good-faith belief that the use of the material is not authorized by the copyright owner, its agent, or the law</Bullet>
+        <Bullet>A statement, under penalty of perjury, that the information in your notice is accurate and that you are the copyright owner or authorized to act on the owner's behalf</Bullet>
+        <Bullet>Your physical or electronic signature</Bullet>
+        <P>
+          Submit copyright notices to: <B>support@lacunose.com</B>
+        </P>
+        <P>
+          We will review all valid notices and take appropriate action, which may include removing or disabling access to the allegedly infringing content.
+        </P>
+
+        {/* ── 12. Limitation of Liability ── */}
+        <SectionTitle>12. Limitation of Liability</SectionTitle>
+        <P>
+          To the maximum extent permitted by applicable law, Lacunose and its officers, directors, employees, and agents shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:
+        </P>
+        <Bullet>Loss of profits, data, or academic opportunities</Bullet>
+        <Bullet>Decisions made based on AI-generated analyses</Bullet>
+        <Bullet>Interruption of service or loss of access</Bullet>
+        <Bullet>Errors or inaccuracies in analysis results</Bullet>
+        <P>
+          Our total aggregate liability for all claims arising from or related to the Service shall not exceed the total amount you paid to us in the 12 months preceding the claim, or $100 USD, whichever is greater.
+        </P>
+
+        {/* ── 13. Disclaimer of Warranties ── */}
+        <SectionTitle>13. Disclaimer of Warranties</SectionTitle>
+        <P>
+          The Service is provided <B>"as is"</B> and <B>"as available"</B> without warranties of any kind, whether express, implied, or statutory. We specifically disclaim all implied warranties of merchantability, fitness for a particular purpose, and non-infringement.
+        </P>
+        <P>
+          We do not warrant that the Service will be uninterrupted, error-free, or completely secure, or that the results of any analysis will be accurate, complete, reliable, or suitable for any particular academic or professional purpose.
+        </P>
+
+        {/* ── 14. Termination ── */}
+        <SectionTitle>14. Termination</SectionTitle>
+        <P>
+          We reserve the right to suspend or terminate your account and access to the Service at any time, with or without notice, if we reasonably believe that you have violated these Terms or engaged in conduct that is harmful to the Service, other users, or our interests.
+        </P>
+        <P>
+          Upon termination, your right to access the Service will cease immediately. Sections of these Terms that by their nature should survive termination (including, without limitation, intellectual property, limitation of liability, and disclaimers) will continue in effect.
+        </P>
+
+        {/* ── 15. Governing Law ── */}
+        <SectionTitle>15. Governing Law</SectionTitle>
+        <P>
+          These Terms shall be governed by and construed in accordance with the laws of the Arab Republic of Egypt, without regard to its conflict-of-law provisions. Any disputes arising from these Terms or the Service shall be subject to the exclusive jurisdiction of the courts of Egypt.
+        </P>
+        <P>
+          For users located in the European Union, nothing in these Terms affects your rights under the General Data Protection Regulation (GDPR) or other mandatory consumer protection laws in your jurisdiction.
+        </P>
+
+        {/* ── 16. Changes to Terms ── */}
+        <SectionTitle>16. Changes to Terms</SectionTitle>
+        <P>
+          We may revise these Terms at any time by posting the updated version in the app. The "Last updated" date at the top indicates when the Terms were last modified. Material changes will be communicated through the app or via email. Your continued use of the Service after any changes constitutes your acceptance of the revised Terms.
+        </P>
+
+        {/* ── 17. Contact Us ── */}
+        <SectionTitle>17. Contact Us</SectionTitle>
+        <P>
+          If you have any questions or concerns about these Terms of Service, please contact us at:
+        </P>
+        <P><B>Email:</B> support@lacunose.com</P>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
+
+/* ─────────────────────── styles ─────────────────────── */
+
+const s = StyleSheet.create({
+  scroll: { paddingTop: 60, paddingHorizontal: 28, paddingBottom: 60 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+  title: { fontSize: 36, letterSpacing: -1, marginBottom: 6 },
+  updated: { fontSize: 13, marginBottom: 28 },
+  sectionTitle: { fontSize: 22, letterSpacing: -0.4, marginTop: 28, marginBottom: 10 },
+  paragraph: { fontSize: 15, lineHeight: 24, marginBottom: 10 },
+  bulletRow: { flexDirection: 'row', paddingLeft: 4, marginBottom: 6 },
+  bulletDot: { fontSize: 15, lineHeight: 24, width: 16 },
+  bulletText: { flex: 1, fontSize: 15, lineHeight: 24 },
+});

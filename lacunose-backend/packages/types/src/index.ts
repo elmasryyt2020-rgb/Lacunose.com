@@ -368,13 +368,18 @@ export const QUEUE_NAMES = {
 
 export interface IngestJob {
   analysis_id: string;
-  user_id: string;
+  user_id: string | null; // null for anonymous onboarding analyses
   topic: string;
   field: FieldId | string;
   structured_frame?: StructuredFrameValue;
   filters?: AnalysisFilters;
   /** OpenAlex concept ID of the selected field, if any. Used for corpus filtering. */
   concept_id?: string;
+  /**
+   * Anonymous onboarding runs cap corpus size + final gap count to reduce
+   * cost. See src/gap/rank.ts + src/workers/ingest.ts for how this is applied.
+   */
+  is_anonymous?: boolean;
 }
 
 export interface ParseJob {
@@ -389,12 +394,14 @@ export interface EmbedJob {
 
 export interface GapJob {
   analysis_id: string;
-  user_id: string;
+  user_id: string | null;
   field: FieldId | string;
   topic: string;
   structured_frame?: StructuredFrameValue;
   /** Paper IDs we already have in the corpus for this analysis. */
   paper_ids: string[];
+  /** Anonymous runs trim final gap count to keep the teaser fast + cheap. */
+  is_anonymous?: boolean;
 }
 
 export interface CritiqueJob {

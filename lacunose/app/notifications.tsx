@@ -59,22 +59,36 @@ export default function ScreenNotifications() {
       </View>
 
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-        {isLoading && <Text style={{ fontFamily: RGF.sans, color: RGF.muted, textAlign: 'center' }}>Loading...</Text>}
-        {notifications?.map((item: any, i: number) => (
-          <NotificationItem 
-            key={item.id || i} 
-            title={item.title} 
-            message={item.body} 
-            time={new Date(item.created_at).toLocaleDateString()} 
-            icon={item.kind === 'analysis_done' ? 'sparkle' : 'gap'} 
-            color={RGF.lavender} 
-            isNew={!item.is_read} 
-          />
-        ))}
-        
-        <TouchableOpacity onPress={() => markAllRead()} style={{ alignSelf: 'center', marginTop: 20 }}>
-          <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.muted }}>Mark all as read</Text>
-        </TouchableOpacity>
+        {isLoading ? (
+          <Text style={{ fontFamily: RGF.sans, color: RGF.muted, textAlign: 'center', marginTop: 40 }}>Loading...</Text>
+        ) : !notifications?.length ? (
+          <View style={{ alignItems: 'center', paddingTop: 80 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: RGF.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+              <Icon name="bell" size={28} color={RGF.muted} />
+            </View>
+            <Text style={{ fontFamily: RGF.display, fontSize: 22, color: RGF.ink, letterSpacing: -0.4, marginBottom: 6 }}>All quiet.</Text>
+            <Text style={{ fontFamily: RGF.sans, fontSize: 14, color: RGF.inkSoft, textAlign: 'center', lineHeight: 20, paddingHorizontal: 40 }}>
+              You&rsquo;ll be notified here when analyses finish, support replies arrive, or your quota resets.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {notifications.map((item: any, i: number) => (
+              <NotificationItem
+                key={item.id || i}
+                title={item.title}
+                message={item.body}
+                time={new Date(item.created_at).toLocaleDateString()}
+                icon={item.kind === 'analysis_done' ? 'sparkle' : 'gap'}
+                color={RGF.lavender}
+                isNew={!item.is_read}
+              />
+            ))}
+            <TouchableOpacity onPress={() => markAllRead()} style={{ alignSelf: 'center', marginTop: 20 }}>
+              <Text style={{ fontFamily: RGF.sansMedium, fontSize: 13, color: RGF.muted }}>Mark all as read</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </View>
   );

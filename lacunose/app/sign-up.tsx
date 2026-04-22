@@ -94,6 +94,9 @@ export default function ScreenSignUp() {
   const insets = useSafeAreaInsets();
   const { signInWithGoogle, signInWithApple, signUp } = useAuth();
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
 
   const handleSignIn = () => router.push('/sign-in');
@@ -103,11 +106,24 @@ export default function ScreenSignUp() {
       Alert.alert('Enter a valid email address');
       return;
     }
+    const trimmedPhone = phone.trim();
+    if (trimmedPhone && !/^\+?[0-9][\d\s\-]{6,20}$/.test(trimmedPhone)) {
+      Alert.alert('Check your phone number', 'Use international format, e.g. +20 123 456 7890.');
+      return;
+    }
     setSending(true);
     try {
       await signUp(email.trim());
-      // typed routes haven't regenerated for the new sign-up-otp file yet
-      router.push(`/sign-up-otp?email=${encodeURIComponent(email.trim())}` as any);
+      // typed routes haven't regenerated for the new sign-up-otp file yet.
+      // Name + phone ride as query params; the OTP screen attaches them to
+      // user_metadata right after verifyOtp succeeds.
+      const qs = new URLSearchParams({
+        email: email.trim(),
+        ...(firstName.trim() && { first: firstName.trim() }),
+        ...(lastName.trim() && { last: lastName.trim() }),
+        ...(trimmedPhone && { phone: trimmedPhone }),
+      }).toString();
+      router.push(`/sign-up-otp?${qs}` as any);
     } catch (e) {
       Sentry.captureException(e);
       Alert.alert('Could not send code', (e as Error)?.message ?? 'Please try again.');
@@ -159,13 +175,26 @@ export default function ScreenSignUp() {
           <View style={{ gap: 10, marginBottom: 20 }}>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={[styles.inputBox, { flex: 1, backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
-                <TextInput style={[styles.inputText, { color: RGF.ink }]} placeholder="First name" placeholderTextColor={RGF.muted} />
+                <TextInput
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  style={[styles.inputText, { color: RGF.ink }]}
+                  placeholder="First name"
+                  placeholderTextColor={RGF.muted}
+                />
               </View>
               <View style={[styles.inputBox, { flex: 1, backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
-                <TextInput style={[styles.inputText, { color: RGF.ink }]} placeholder="Last name" placeholderTextColor={RGF.muted} />
+                <TextInput
+                  value={lastName}
+                  onChangeText={setLastName}
+                  style={[styles.inputText, { color: RGF.ink }]}
+                  placeholder="Last name"
+                  placeholderTextColor={RGF.muted}
+                />
               </View>
             </View>
             <FormInput icon="mail" placeholder="Email address" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+            <FormInput icon="bell" placeholder="Phone (optional)" value={phone} onChangeText={setPhone} autoCapitalize="none" keyboardType="phone-pad" optional />
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted, marginBottom: 12 }}>
               We'll email you a 6-digit code.
             </Text>

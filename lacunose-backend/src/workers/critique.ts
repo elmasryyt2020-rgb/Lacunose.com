@@ -18,7 +18,13 @@ const worker = new Worker(
   async (job) => {
     logger.info('noop', { id: job.id });
   },
-  { ...bullConnection(), concurrency: 1 },
+  {
+    ...bullConnection(),
+    concurrency: 1,
+    // Critique issues LLM calls per gap; default 30s is insufficient.
+    lockDuration: 300_000,
+    stalledInterval: 60_000,
+  },
 );
 
 worker.on('failed', (job, err) => {
