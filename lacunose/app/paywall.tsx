@@ -46,7 +46,7 @@ function TierCard({ tier, price, period, desc, featured, current, dark }: any) {
 export default function ScreenPaywall() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const { data: entitlement } = useEntitlement();
   const queryClient = useQueryClient();
   const [proPackage, setProPackage] = useState<PurchasesPackage | null>(null);
@@ -117,8 +117,8 @@ export default function ScreenPaywall() {
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }}>Restore</Text>
           </TouchableOpacity>
         </View>
-        <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 39, letterSpacing: -1.2, color: RGF.ink, marginBottom: 6 }}>
-          Go <Text style={{ fontStyle: 'italic' }}>deeper.</Text>
+        <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 39, letterSpacing: -1.2, color: RGF.ink, marginBottom: 6, ...displayShadow }}>
+          Go <Text style={{ fontFamily: RGF.displayItalic }}>deeper.</Text>
         </Text>
         <Text style={{ fontFamily: RGF.sans, fontSize: 14, color: RGF.inkSoft, lineHeight: 20, marginBottom: 24 }}>
           Unlimited analyses, full gap lists,{'\n'}Zotero sync, advisor mode.

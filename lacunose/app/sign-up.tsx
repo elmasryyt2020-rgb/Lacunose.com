@@ -89,7 +89,7 @@ function FormInput({ icon, placeholder, secure, optional, value, onChangeText, a
 
 export default function ScreenSignUp() {
   const router = useRouter();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const [isEmail, setIsEmail] = useState(false);
   const insets = useSafeAreaInsets();
   const { signInWithGoogle, signInWithApple, signUp } = useAuth();
@@ -142,8 +142,8 @@ export default function ScreenSignUp() {
           <Logo size={36} />
         </View>
 
-        <Text style={[styles.headline, { color: RGF.ink }]}>
-          Create your{'\n'}<Text style={{ fontStyle: 'italic' }}>account.</Text>
+        <Text style={[styles.headline, { color: RGF.ink, fontFamily: RGF.display, ...displayShadow }]}>
+          Create your{'\n'}<Text style={{ fontFamily: RGF.displayItalic }}>account.</Text>
         </Text>
         
         <Text style={[styles.paragraph, { color: RGF.inkSoft }]}>
@@ -237,22 +237,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40,
   },
   headline: {
-    fontFamily: 'Display', fontSize: 44, lineHeight: 45, letterSpacing: -1.4, marginBottom: 14,
+    fontSize: 44, lineHeight: 45, letterSpacing: -1.4, marginBottom: 14,
   },
   paragraph: {
-    fontFamily: 'Sans', fontSize: 15, lineHeight: 22, marginBottom: 36,
+    fontSize: 15, lineHeight: 22, marginBottom: 36,
   },
   inputBox: {
     borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16,
     borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52
   },
   inputText: {
-    flex: 1, fontFamily: 'Sans', fontSize: 15, padding: 0
+    flex: 1, fontSize: 15, padding: 0
   },
   primaryBtn: {
     borderRadius: 22, paddingVertical: 16, alignItems: 'center', marginTop: 10
   },
   primaryBtnText: {
-    fontFamily: 'SansSemiBold', fontSize: 15
+    fontSize: 15
   }
 });

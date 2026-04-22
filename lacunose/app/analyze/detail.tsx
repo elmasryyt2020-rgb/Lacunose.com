@@ -10,7 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { isMockMode } from '../../lib/mocks';
 
 function ScoreBig({ value, label, color }: any) {
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   return (
     <View style={{
       flex: 1, backgroundColor: color, borderRadius: 20,
@@ -18,7 +18,7 @@ function ScoreBig({ value, label, color }: any) {
       justifyContent: 'space-between',
     }}>
       <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.inkSoft, letterSpacing: 1, textTransform: 'uppercase' }}>{label}</Text>
-      <Text style={{ fontFamily: RGF.display, fontSize: 48, lineHeight: 48, color: RGF.ink, letterSpacing: -1.5 }}>
+      <Text style={{ fontFamily: RGF.display, fontSize: 48, lineHeight: 48, color: RGF.ink, letterSpacing: -1.5, ...displayShadow }}>
         {value}<Text style={{ fontSize: 18, color: RGF.muted }}>/10</Text>
       </Text>
     </View>
@@ -27,7 +27,7 @@ function ScoreBig({ value, label, color }: any) {
 
 export default function ScreenDetail() {
   const router = useRouter();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const { gapId } = useLocalSearchParams<{ gapId: string }>();
   const { data: gap, isLoading } = useGapItem(gapId || '');
   const { user } = useAuth();
@@ -101,7 +101,7 @@ export default function ScreenDetail() {
           <CategoryPill kind={gap.category || 'future-work'} />
         </View>
 
-        <Text style={{ fontFamily: RGF.display, fontSize: 30, lineHeight: 32, letterSpacing: -0.8, color: RGF.ink, marginBottom: 20 }}>
+        <Text style={{ fontFamily: RGF.display, fontSize: 30, lineHeight: 32, letterSpacing: -0.8, color: RGF.ink, marginBottom: 20, ...displayShadow }}>
           {gap.title}
         </Text>
 
@@ -141,16 +141,16 @@ export default function ScreenDetail() {
         {(gap.evidence || []).length > 0 && (
           <View style={{ backgroundColor: RGF.surface, borderRadius: 24, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.ink, letterSpacing: -0.3 }}>Evidence</Text>
+              <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.ink, letterSpacing: -0.3, ...displayShadow }}>Evidence</Text>
               <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>{(gap.evidence || []).length} papers</Text>
             </View>
             {(gap.evidence || []).map((e: any, i: number) => (
               <View key={i} style={{ paddingTop: 12, paddingBottom: 12, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: RGF.hair }}>
-                <Text style={{ fontFamily: RGF.display, fontSize: 15, lineHeight: 21, color: RGF.ink, fontStyle: 'italic', marginBottom: 8 }}>
+                <Text style={{ fontFamily: RGF.displayItalic, fontSize: 15, lineHeight: 21, color: RGF.ink, marginBottom: 8 }}>
                   "{e.quote}"
                 </Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted }}>{e.authors} · <Text style={{ fontStyle: 'italic' }}>{e.journal}</Text> · {e.year}</Text>
+                  <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted }}>{e.authors} · <Text style={{ fontFamily: RGF.displayItalic }}>{e.journal}</Text> · {e.year}</Text>
                   <View style={{ paddingVertical: 3, paddingHorizontal: 8, borderRadius: 99, backgroundColor: RGF.bg }}>
                     <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.inkSoft, letterSpacing: 0.4, textTransform: 'uppercase' }}>{e.section || 'discussion'}</Text>
                   </View>

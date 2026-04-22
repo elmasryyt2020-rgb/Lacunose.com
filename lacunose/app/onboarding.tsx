@@ -111,7 +111,7 @@ function ScreenOnboardA({
   setField: (f: string) => void;
   onNext: () => void;
 }) {
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const activeLabel = FRAMES[field]?.label ?? 'research';
   const canProceed = topic.trim().length >= 3;
 
@@ -120,9 +120,9 @@ function ScreenOnboardA({
       <Text style={[styles.kicker, { fontFamily: RGF.sansSemiBold, color: RGF.muted }]}>
         Step 1 of 4 · Your research topic
       </Text>
-      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink }]}>
+      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink, ...displayShadow }]}>
         Start with what you{'\n'}
-        <Text style={{ fontStyle: 'italic' }}>care about.</Text>
+        <Text style={{ fontFamily: RGF.displayItalic }}>care about.</Text>
       </Text>
       <Text style={[styles.paragraph, { fontFamily: RGF.sans, color: RGF.inkSoft }]}>
         Pick your field and tell us your research interest. We&rsquo;ll scan thousands of papers and surface the gaps.
@@ -132,8 +132,8 @@ function ScreenOnboardA({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingRight: 22, marginBottom: 18 }}
-        style={{ marginHorizontal: -22, paddingHorizontal: 22, flexGrow: 0, maxHeight: 44 }}
+        contentContainerStyle={{ gap: 8, paddingRight: 22, marginBottom: 18, alignItems: 'center' }}
+        style={{ marginHorizontal: -22, paddingHorizontal: 22, flexGrow: 0, maxHeight: 52, overflow: 'visible' }}
       >
         {QUICK_FIELDS.map((id) => {
           const label = FRAMES[id]?.label ?? id;
@@ -144,19 +144,21 @@ function ScreenOnboardA({
               onPress={() => setField(id)}
               activeOpacity={0.7}
               style={{
-                paddingVertical: 8,
+                height: 38,
                 paddingHorizontal: 16,
                 borderRadius: 99,
                 backgroundColor: active ? RGF.ink : RGF.surface,
                 borderWidth: 1,
                 borderColor: active ? RGF.ink : RGF.hair,
                 justifyContent: 'center',
+                alignItems: 'center',
               }}
             >
               <Text
                 style={{
                   fontFamily: active ? RGF.sansMedium : RGF.sans,
                   fontSize: 13,
+                  lineHeight: 16,
                   color: active ? RGF.bg : RGF.ink,
                 }}
               >
@@ -313,7 +315,7 @@ function ScreenOnboardB({
   setFrameValues: (v: Record<string, string>) => void;
   onNext: () => void;
 }) {
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const frame = FRAMES[field] ?? FRAMES.generic;
   if (!frame) return null;
 
@@ -322,9 +324,9 @@ function ScreenOnboardB({
       <Text style={[styles.kicker, { fontFamily: RGF.sansSemiBold, color: RGF.muted }]}>
         Step 2 of 4 · Frame the question
       </Text>
-      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink }]}>
+      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink, ...displayShadow }]}>
         Optionally{'\n'}
-        <Text style={{ fontStyle: 'italic' }}>narrow it.</Text>
+        <Text style={{ fontFamily: RGF.displayItalic }}>narrow it.</Text>
       </Text>
       <Text style={[styles.paragraph, { fontFamily: RGF.sans, color: RGF.inkSoft, marginBottom: 20 }]}>
         Tap any row to add detail, or skip — our pipeline runs fine without it.
@@ -366,7 +368,7 @@ function ScreenOnboardC({
   onReady: (firstGap: FirstGap, analysisId: string, claimToken: string) => void;
   onError: (msg: string) => void;
 }) {
-  const { RGF, theme } = useTheme();
+  const { RGF, theme, displayShadow } = useTheme();
   const [elapsedSec, setElapsedSec] = useState(0);
   const [status, setStatus] = useState<'submitting' | 'queued' | 'running' | 'done' | 'failed'>('submitting');
   const [gapsSoFar, setGapsSoFar] = useState<{ title: string; category: string; novelty_score?: number | null; feasibility_score?: number | null }[]>([]);
@@ -507,9 +509,9 @@ function ScreenOnboardC({
       <Text style={[styles.kicker, { fontFamily: RGF.sansSemiBold, color: RGF.muted }]}>
         Step 3 of 4 · Live analysis
       </Text>
-      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink }]}>
+      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink, ...displayShadow }]}>
         Reading everything{'\n'}
-        <Text style={{ fontStyle: 'italic' }}>so you don&rsquo;t have to.</Text>
+        <Text style={{ fontFamily: RGF.displayItalic }}>so you don&rsquo;t have to.</Text>
       </Text>
 
       <View
@@ -767,7 +769,7 @@ function BlurredStack() {
 function ScreenOnboardReveal({ firstGap }: { firstGap: FirstGap | null }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF, theme } = useTheme();
+  const { RGF, theme, displayShadow } = useTheme();
 
   const grad: [string, string, string] =
     theme === 'dark'
@@ -802,9 +804,9 @@ function ScreenOnboardReveal({ firstGap }: { firstGap: FirstGap | null }) {
       <Text style={[styles.kicker, { fontFamily: RGF.sansSemiBold, color: RGF.muted }]}>
         Analysis complete · real gap found
       </Text>
-      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink, fontSize: 32, marginBottom: 16 }]}>
+      <Text style={[styles.headline, { fontFamily: RGF.display, color: RGF.ink, fontSize: 32, marginBottom: 16, ...displayShadow }]}>
         You found a gap{'\n'}
-        <Text style={{ fontStyle: 'italic' }}>nobody else has claimed.</Text>
+        <Text style={{ fontFamily: RGF.displayItalic }}>nobody else has claimed.</Text>
       </Text>
 
       <TeaserGap

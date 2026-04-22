@@ -6,7 +6,7 @@ import { Logo } from '../components/Logo';
 
 export default function ScreenGetStarted() {
   const router = useRouter();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const appName = 'Lacunose';
 
   return (
@@ -23,13 +23,13 @@ export default function ScreenGetStarted() {
       <Text style={{
         fontFamily: RGF.display, fontSize: 52, lineHeight: 54,
         letterSpacing: -1.8, color: RGF.ink, marginBottom: 18,
-        position: 'relative', zIndex: 2,
+        position: 'relative', zIndex: 2, ...displayShadow,
       }}>
-        Find the{'\n'}<Text style={{ fontStyle: 'italic' }}>space</Text> where{'\n'}you matter.
+        Find the{'\n'}<Text style={{ fontFamily: RGF.displayItalic }}>space</Text> where{'\n'}you matter.
       </Text>
       
       <Text style={{ fontFamily: RGF.sans, fontSize: 16, color: RGF.inkSoft, lineHeight: 24, marginBottom: 40, position: 'relative', zIndex: 2 }}>
-        {appName} turns <Text style={{ fontStyle: 'italic' }}>5,000</Text> medical{'\n'}papers into one unanswered{'\n'}question — yours.
+        {appName} turns <Text style={{ fontFamily: RGF.displayItalic }}>5,000</Text> medical{'\n'}papers into one unanswered{'\n'}question — yours.
       </Text>
 
       <View style={{ flex: 1 }} />

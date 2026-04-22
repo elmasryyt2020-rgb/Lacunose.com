@@ -82,5 +82,21 @@ module.exports = {
       max_memory_restart: '256M',
       env: { NODE_ENV: 'production' },
     },
+    {
+      name: 'web-waitlist',
+      script: 'npm',
+      args: 'start',
+      cwd: '/home/deploy/lacunose-website',
+      instances: 1,
+      exec_mode: 'fork',
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+        PORT: '3000',
+      },
+      error_file: '/home/deploy/.pm2/logs/web-waitlist.err.log',
+      out_file: '/home/deploy/.pm2/logs/web-waitlist.out.log',
+      time: true,
+    },
   ],
 };

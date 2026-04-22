@@ -13,7 +13,7 @@ const RESEND_COOLDOWN_SEC = 30;
 
 export default function ScreenOTP() {
   const router = useRouter();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const insets = useSafeAreaInsets();
   // Params may legitimately be undefined on a cold deep-link.
   const params = useLocalSearchParams<{ email?: string; first?: string; last?: string; phone?: string }>();
@@ -108,8 +108,8 @@ export default function ScreenOTP() {
         <Logo size={36} />
       </View>
 
-      <Text style={[styles.headline, { color: RGF.ink }]}>
-        Check your{'\n'}<Text style={{ fontStyle: 'italic' }}>inbox.</Text>
+      <Text style={[styles.headline, { color: RGF.ink, fontFamily: RGF.display, ...displayShadow }]}>
+        Check your{'\n'}<Text style={{ fontFamily: RGF.displayItalic }}>inbox.</Text>
       </Text>
 
       <Text style={[styles.paragraph, { color: RGF.inkSoft }]}>
@@ -162,9 +162,9 @@ export default function ScreenOTP() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 60, paddingHorizontal: 28 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 },
-  headline: { fontFamily: 'Display', fontSize: 44, lineHeight: 45, letterSpacing: -1.4, marginBottom: 14 },
-  paragraph: { fontFamily: 'Sans', fontSize: 15, lineHeight: 22, marginBottom: 36 },
+  headline: { fontSize: 44, lineHeight: 45, letterSpacing: -1.4, marginBottom: 14 },
+  paragraph: { fontSize: 15, lineHeight: 22, marginBottom: 36 },
   inputBox: { borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1, minHeight: 64, justifyContent: 'center' },
   primaryBtn: { borderRadius: 22, paddingVertical: 16, alignItems: 'center', marginTop: 10 },
-  primaryBtnText: { fontFamily: 'SansSemiBold', fontSize: 15 },
+  primaryBtnText: { fontSize: 15 },
 });

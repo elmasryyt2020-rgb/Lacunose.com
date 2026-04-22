@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import { useFonts, InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
+import { useFonts, InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono';
 import * as SplashScreen from 'expo-splash-screen';
@@ -112,6 +112,7 @@ function AppContent() {
 export default Sentry.wrap(function RootLayout() {
   const [loaded] = useFonts({
     InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,

@@ -40,30 +40,74 @@ function StreamStatus({ status, gapsSoFar, startedAt }: { status: string; gapsSo
   const spin = spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const elapsedSec = startedAt ? Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000)) : 0;
 
-  // Derive a synthetic 4-stage pipeline view from status + elapsed + gaps.
-  // Real backend stages (ingest/parse/embed/gap/critique) don't map cleanly
-  // to user-friendly labels, so we collapse them by time elapsed.
+  // Progressive stage unlock — each stage has a minimum time it must be
+  // "active" (animating) before we advance. This prevents stages from
+  // instantly flipping done when the screen opens mid-analysis or when
+  // the backend is fast.
+  //
+  // We use a ref to track the "current" stageIndex inside effects so we
+  // never capture a stale closure value.
+  const STAGE_MIN_MS = [800, 2500, 2500, 0]; // min active time per stage
+
+  const getDesiredStage = React.useCallback(
+    (current: number) => {
+      if (status === 'done' || status === 'failed') return 4;
+      if (gapsSoFar > 0 && current < 3) return 3;
+      if (status === 'running' && current < 1) return 1;
+      return current;
+    },
+    [status, gapsSoFar],
+  );
+
+  const [stageIndex, setStageIndex] = React.useState(() => {
+    // Seed with the "real" stage inferred from current data so we don't
+    // always start at 0 when the user opens a mid-flight analysis.
+    if (status === 'done' || status === 'failed') return 4;
+    if (gapsSoFar > 0) return 3;
+    if (status === 'running') return 1;
+    return 0;
+  });
+  const stageIndexRef = React.useRef(stageIndex);
+  stageIndexRef.current = stageIndex;
+
+  // Advance stageIndex when backend signals progress, but only after the
+  // minimum display time for the current stage. Steps one stage at a time
+  // so every spinner is visible before becoming a checkmark.
+  React.useEffect(() => {
+    const desired = getDesiredStage(stageIndexRef.current);
+    if (desired <= stageIndexRef.current) return;
+
+    const delay = STAGE_MIN_MS[stageIndexRef.current] ?? 0;
+    const t = setTimeout(() => {
+      setStageIndex((prev) => {
+        const next = Math.min(prev + 1, desired);
+        return next;
+      });
+    }, delay);
+    return () => clearTimeout(t);
+  }, [status, gapsSoFar, stageIndex, getDesiredStage]);
+
   type Stage = { label: string; done: boolean; active: boolean };
   const stages: Stage[] = [
     {
       label: 'Queued analysis',
-      done: status === 'running' || status === 'done' || status === 'failed' || elapsedSec >= 2,
-      active: status === 'queued',
+      done: stageIndex > 0,
+      active: stageIndex === 0,
     },
     {
       label: 'Fetching papers from 5 sources',
-      done: status === 'done' || status === 'failed' || elapsedSec >= 60,
-      active: status === 'running' && elapsedSec < 60,
+      done: stageIndex > 1,
+      active: stageIndex === 1,
     },
     {
       label: 'Reading abstracts + extracting signals',
-      done: status === 'done' || status === 'failed' || gapsSoFar > 0 || elapsedSec >= 120,
-      active: status === 'running' && elapsedSec >= 60 && gapsSoFar === 0,
+      done: stageIndex > 2,
+      active: stageIndex === 2,
     },
     {
       label: gapsSoFar > 0 ? `Synthesizing gaps — ${gapsSoFar} found` : 'Synthesizing gaps',
-      done: status === 'done' || status === 'failed',
-      active: status === 'running' && gapsSoFar > 0,
+      done: stageIndex > 3,
+      active: stageIndex === 3,
     },
   ];
   const doneCount = stages.filter((s) => s.done).length;
@@ -115,7 +159,7 @@ function StreamStatus({ status, gapsSoFar, startedAt }: { status: string; gapsSo
 }
 
 function GapCard({ rank, color, category, novelty, feas, title, desc, evidence = [], collapsed, onPress }: any) {
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   return (
     <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={{ backgroundColor: RGF.surface, borderRadius: 26, padding: 18, borderWidth: 1, borderColor: RGF.hair }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
@@ -123,8 +167,8 @@ function GapCard({ rank, color, category, novelty, feas, title, desc, evidence =
           <Text style={{ fontFamily: RGF.display, fontSize: 20, color: RGF.ink }}>{String(rank).padStart(2, '0')}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <CategoryPill kind={category} />
-          <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 23, letterSpacing: -0.4, color: RGF.ink, marginTop: 8 }}>{title}</Text>
+          <CategoryPill kind={category} bg={color} />
+          <Text style={{ fontFamily: RGF.display, fontSize: 20, lineHeight: 23, letterSpacing: -0.4, color: RGF.ink, marginTop: 8, ...displayShadow }}>{title}</Text>
         </View>
       </View>
 
@@ -143,7 +187,7 @@ function GapCard({ rank, color, category, novelty, feas, title, desc, evidence =
           </View>
           {evidence.map((e: any, i: number) => (
             <View key={i} style={{ paddingVertical: 8, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: RGF.hair }}>
-              <Text style={{ fontFamily: RGF.display, fontSize: 14, lineHeight: 20, color: RGF.ink, fontStyle: 'italic', marginBottom: 4 }}>"{e.quote}"</Text>
+              <Text style={{ fontFamily: RGF.displayItalic, fontSize: 14, lineHeight: 20, color: RGF.ink, marginBottom: 4 }}>"{e.quote}"</Text>
               <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted }}>{e.authors} · {e.year}</Text>
             </View>
           ))}
@@ -192,7 +236,7 @@ function GapCardPending({ rank }: { rank: number }) {
 
 export default function ScreenResults() {
   const router = useRouter();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   
   const { data: analysis, isLoading } = useAnalysis(id || '');
@@ -216,7 +260,7 @@ export default function ScreenResults() {
         <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>
           Analysis · {FRAMES[analysis?.field]?.label || analysis?.field || 'Loading'}
         </Text>
-        <Text style={{ fontFamily: RGF.display, fontSize: 32, lineHeight: 34, letterSpacing: -0.9, color: RGF.ink, marginBottom: 18 }}>
+        <Text style={{ fontFamily: RGF.display, fontSize: 32, lineHeight: 34, letterSpacing: -0.9, color: RGF.ink, marginBottom: 18, ...displayShadow }}>
           {analysis?.topic || 'Loading...'}
         </Text>
 
@@ -229,8 +273,10 @@ export default function ScreenResults() {
         )}
 
         <View style={{ gap: 12 }}>
-          {allGaps.map((g: any) => {
-            const frameColor = (RGF as any)[FRAMES[analysis?.field]?.rows[0]?.color || 'lavender'];
+          {allGaps.map((g: any, idx: number) => {
+            const CARD_COLORS: Array<keyof typeof RGF> = ['lavender', 'mint', 'sky', 'butter', 'peach', 'rose', 'sage'];
+            const colorKey = CARD_COLORS[idx % CARD_COLORS.length];
+            const frameColor = (RGF as any)[colorKey];
             return (
               <GapCard
                 key={g.id}

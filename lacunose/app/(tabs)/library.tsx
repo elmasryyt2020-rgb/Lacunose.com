@@ -7,11 +7,12 @@ import { useRouter } from 'expo-router';
 import { useAnalyses } from '../../hooks/useAnalyses';
 import { useSavedGaps } from '../../hooks/useSavedGaps';
 import { FRAMES } from '../../lib/fields/frames';
+import { CARD_COLORS } from '../../constants/theme';
 
 export default function ScreenLibrary() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -85,7 +86,7 @@ export default function ScreenLibrary() {
             </TouchableOpacity>
           </View>
         )}
-        <Text style={{ fontFamily: RGF.display, fontSize: 40, lineHeight: 41, letterSpacing: -1.2, color: RGF.ink, marginBottom: 6 }}>
+        <Text style={{ fontFamily: RGF.display, fontSize: 40, lineHeight: 41, letterSpacing: -1.2, color: RGF.ink, marginBottom: 6, ...displayShadow }}>
           Library
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -135,7 +136,8 @@ export default function ScreenLibrary() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {isLoading && <Text style={{ fontFamily: RGF.sans, color: RGF.muted, padding: 20 }}>Loading...</Text>}
           {filteredItems.map((it: any, i: number) => {
-            const frameColor = (RGF as any)[FRAMES[it.field]?.rows[0]?.color || 'lavender'];
+            const colorKey = CARD_COLORS[i % CARD_COLORS.length];
+            const frameColor = (RGF as any)[colorKey];
             return (
               <TouchableOpacity key={it.id} onPress={() => router.push(`/analyze/results?id=${it.id}`)} activeOpacity={0.8} style={{
                 width: '48%', backgroundColor: RGF.surface, borderRadius: 22, padding: 14,
@@ -155,7 +157,7 @@ export default function ScreenLibrary() {
                 </View>
                 <View style={{ marginTop: 10 }}>
                   <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>{FRAMES[it.field]?.label || it.field}</Text>
-                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.inkSoft }}>{it.gap_items?.length ?? 0} gaps · {new Date(it.created_at).toLocaleDateString()}</Text>
+                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.inkSoft }}>{it.gap_items?.length ?? 0} {it.gap_items?.length === 1 ? 'gap' : 'gaps'} · {new Date(it.created_at).toLocaleDateString()}</Text>
                 </View>
               </TouchableOpacity>
             );

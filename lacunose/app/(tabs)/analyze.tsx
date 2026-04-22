@@ -85,7 +85,7 @@ function FrameRow({ letter, label, value, onChange, color, placeholder }: any) {
 export default function ScreenAnalyze() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const { search } = useLocalSearchParams<{ search?: string }>();
 
 
@@ -213,8 +213,8 @@ export default function ScreenAnalyze() {
           </TouchableOpacity>
         </ScrollView>
 
-        <Text style={{ fontFamily: RGF.display, fontSize: 42, lineHeight: 43, letterSpacing: -1.3, color: RGF.ink, marginBottom: 26 }}>
-          What area of{'\n'}<Text style={{ fontStyle: 'italic', textDecorationLine: 'underline', textDecorationColor: RGF.hair }}>{activeLabel.toLowerCase()}</Text>{'\n'}do you want to explore?
+        <Text style={{ fontFamily: RGF.display, fontSize: 42, lineHeight: 43, letterSpacing: -1.3, color: RGF.ink, marginBottom: 26, ...displayShadow }}>
+          What area of{'\n'}<Text style={{ fontFamily: RGF.displayItalic, textDecorationLine: 'underline', textDecorationColor: RGF.hair }}>{activeLabel.toLowerCase()}</Text>{'\n'}do you want to explore?
         </Text>
 
         {/* topic box */}

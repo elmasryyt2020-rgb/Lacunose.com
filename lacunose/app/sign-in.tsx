@@ -16,7 +16,7 @@ function isValidEmail(s: string): boolean {
 export default function ScreenSignIn() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
 
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
   const [email, setEmail] = React.useState('');
@@ -66,8 +66,8 @@ export default function ScreenSignIn() {
         <Logo size={36} />
       </View>
 
-      <Text style={[styles.headline, { color: RGF.ink }]}>
-        Welcome{'\n'}<Text style={{ fontStyle: 'italic' }}>back.</Text>
+      <Text style={[styles.headline, { color: RGF.ink, fontFamily: RGF.display, ...displayShadow }]}>
+        Welcome{'\n'}<Text style={{ fontFamily: RGF.displayItalic }}>back.</Text>
       </Text>
       
       <Text style={[styles.paragraph, { color: RGF.inkSoft }]}>
@@ -156,10 +156,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40,
   },
   headline: {
-    fontFamily: 'Display', fontSize: 44, lineHeight: 45, letterSpacing: -1.4, marginBottom: 14,
+    fontSize: 44, lineHeight: 45, letterSpacing: -1.4, marginBottom: 14,
   },
   paragraph: {
-    fontFamily: 'Sans', fontSize: 15, lineHeight: 22, marginBottom: 32,
+    fontSize: 15, lineHeight: 22, marginBottom: 32,
   },
   inputBox: {
     borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16,

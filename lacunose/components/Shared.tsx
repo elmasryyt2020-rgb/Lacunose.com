@@ -124,7 +124,7 @@ export function ScoreDial({ value = 7, max = 10, label = 'Novelty', color, size 
   );
 }
 
-export function CategoryPill({ kind }: { kind: string }) {
+export function CategoryPill({ kind, bg: overrideBg }: { kind: string; bg?: string }) {
   const { RGF } = useTheme();
   const map: Record<string, { bg: string, label: string }> = {
     'future-work': { bg: RGF.sky, label: 'Future work' },
@@ -142,11 +142,12 @@ export function CategoryPill({ kind }: { kind: string }) {
     'temporal': { bg: RGF.sky, label: 'Temporal' },
   };
   const c = map[kind] || map['methodology'];
+  const pillBg = overrideBg ?? c.bg;
   return (
     <View style={{
       alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6,
       paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999,
-      backgroundColor: c.bg,
+      backgroundColor: pillBg,
     }}>
       <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: RGF.ink, opacity: 0.6 }} />
       <Text style={{

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, ScoreDial, CategoryPill } from '../../components/Shared';
+import { CARD_COLORS } from '../../constants/theme';
 import { useAnalyses } from '../../hooks/useAnalyses';
 import { FRAMES } from '../../lib/fields/frames';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,7 +12,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useEntitlement } from '../../hooks/useEntitlement';
 
 function RecentCard({ topic, gap, novelty, category, color, status, onPress }: any) {
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   return (
     <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={[styles.recentCard, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
@@ -19,8 +20,8 @@ function RecentCard({ topic, gap, novelty, category, color, status, onPress }: a
           <Icon name="gap" size={18} color={RGF.ink} />
         </View>
         <View style={{ flex: 1 }}>
-          <CategoryPill kind={category} />
-          <Text style={{ fontFamily: RGF.display, fontSize: 18, lineHeight: 22, letterSpacing: -0.3, color: RGF.ink, marginTop: 8 }} numberOfLines={2}>
+          <CategoryPill kind={category} bg={color} />
+          <Text style={{ fontFamily: RGF.display, fontSize: 18, lineHeight: 22, letterSpacing: -0.3, color: RGF.ink, marginTop: 8, ...displayShadow }} numberOfLines={2}>
             {gap}
           </Text>
           <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.inkSoft, marginTop: 4 }} numberOfLines={1}>
@@ -48,7 +49,7 @@ function RecentCard({ topic, gap, novelty, category, color, status, onPress }: a
 export default function ScreenHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   const [topic, setTopic] = useState('');
 
   const handleSearch = () => {
@@ -108,7 +109,7 @@ export default function ScreenHome() {
 
         {/* Hero Section */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-          <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 40, letterSpacing: -1.2, color: RGF.ink }}>
+          <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 40, letterSpacing: -1.2, color: RGF.ink, ...displayShadow }}>
             Hi {firstName},
           </Text>
           {monthlyGapCount > 0 && (
@@ -120,8 +121,8 @@ export default function ScreenHome() {
           )}
         </View>
         
-        <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 40, letterSpacing: -1.2, color: RGF.ink, marginBottom: 28 }}>
-          explore your <Text style={{ fontStyle: 'italic' }}>next</Text>{'\n'}research space.
+        <Text style={{ fontFamily: RGF.display, fontSize: 38, lineHeight: 40, letterSpacing: -1.2, color: RGF.ink, marginBottom: 28, ...displayShadow }}>
+          explore your <Text style={{ fontFamily: RGF.displayItalic }}>next</Text>{'\n'}research space.
         </Text>
 
         {/* Omni-Input Search */}
@@ -150,7 +151,7 @@ export default function ScreenHome() {
 
         {/* Dashboard: Recent Analyses */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={{ fontFamily: RGF.display, fontSize: 24, color: RGF.ink, letterSpacing: -0.4 }}>
+          <Text style={{ fontFamily: RGF.display, fontSize: 24, color: RGF.ink, letterSpacing: -0.4, ...displayShadow }}>
             Jump back in
           </Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/library')}>
@@ -169,7 +170,8 @@ export default function ScreenHome() {
             </View>
           )}
           {analyses?.map((a: any, i: number) => {
-            const frameColor = (RGF as any)[FRAMES[a.field]?.rows[0]?.color || 'lavender'];
+            const colorKey = CARD_COLORS[i % CARD_COLORS.length];
+            const frameColor = (RGF as any)[colorKey];
             return (
               <RecentCard
                 key={a.id}

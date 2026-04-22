@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { useEntitlement } from '../../hooks/useEntitlement';
 import { useSavedGaps } from '../../hooks/useSavedGaps';
 import { FRAMES } from '../../lib/fields/frames';
+import { CARD_COLORS } from '../../constants/theme';
 import { restorePurchases } from '../../lib/billing/revenuecat';
 import { fetchApi } from '../../lib/api/client';
 import { isMockMode } from '../../lib/mocks';
@@ -36,7 +37,7 @@ function SettingRow({ icon, label, destructive, onPress }: any) {
 export default function ScreenMe() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF } = useTheme();
+  const { RGF, displayShadow } = useTheme();
   
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
@@ -163,7 +164,7 @@ export default function ScreenMe() {
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
-          <Text style={{ fontFamily: RGF.display, fontSize: 40, lineHeight: 41, letterSpacing: -1.2, color: RGF.ink }}>
+          <Text style={{ fontFamily: RGF.display, fontSize: 40, lineHeight: 41, letterSpacing: -1.2, color: RGF.ink, ...displayShadow }}>
             Profile
           </Text>
         </View>
@@ -175,7 +176,7 @@ export default function ScreenMe() {
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: RGF.display, fontSize: 24, letterSpacing: -0.5, color: RGF.ink }} numberOfLines={1}>
+            <Text style={{ fontFamily: RGF.display, fontSize: 24, letterSpacing: -0.5, color: RGF.ink, ...displayShadow }} numberOfLines={1}>
               {displayName}
             </Text>
             <Text style={{ fontFamily: RGF.sans, fontSize: 13, color: RGF.muted }} numberOfLines={1}>
@@ -220,20 +221,24 @@ export default function ScreenMe() {
         <View style={{ gap: 10, marginBottom: 32 }}>
           {loadingGaps && <Text style={{ fontFamily: RGF.sans, color: RGF.muted }}>Loading...</Text>}
           {!loadingGaps && savedGaps?.length === 0 && <Text style={{ fontFamily: RGF.sans, color: RGF.muted }}>No saved gaps yet</Text>}
-          {savedGaps?.map((gap: any, i: number) => (
-            <TouchableOpacity key={gap.id || i} onPress={() => router.push(`/analyze/detail?gapId=${gap.id}`)} style={{ backgroundColor: RGF.surface, borderRadius: 22, padding: 16, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: (RGF as any)[FRAMES[gap.field || 'medicine']?.rows[0]?.color || 'lavender'] || RGF.lavender, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="bookmark" size={16} color={RGF.ink} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <CategoryPill kind={gap.category || 'future-work'} />
-                <Text style={{ fontFamily: RGF.display, fontSize: 18, lineHeight: 21, letterSpacing: -0.3, color: RGF.ink, marginTop: 6 }} numberOfLines={2}>
-                  {gap.title}
-                </Text>
-              </View>
-              <Icon name="chevR" size={16} color={RGF.muted} />
-            </TouchableOpacity>
-          ))}
+          {savedGaps?.map((gap: any, i: number) => {
+            const colorKey = CARD_COLORS[i % CARD_COLORS.length];
+            const frameColor = (RGF as any)[colorKey];
+            return (
+              <TouchableOpacity key={gap.id || i} onPress={() => router.push(`/analyze/detail?gapId=${gap.id}`)} style={{ backgroundColor: RGF.surface, borderRadius: 22, padding: 16, borderWidth: 1, borderColor: RGF.hair, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: frameColor, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="bookmark" size={16} color={RGF.ink} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <CategoryPill kind={gap.category || 'future-work'} bg={frameColor} />
+                  <Text style={{ fontFamily: RGF.display, fontSize: 18, lineHeight: 21, letterSpacing: -0.3, color: RGF.ink, marginTop: 6, ...displayShadow }} numberOfLines={2}>
+                    {gap.title}
+                  </Text>
+                </View>
+                <Icon name="chevR" size={16} color={RGF.muted} />
+              </TouchableOpacity>
+            )
+          })}
         </View>
 
         <View style={{ backgroundColor: RGF.surface, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 4, borderWidth: 1, borderColor: RGF.hair }}>

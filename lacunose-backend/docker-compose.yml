@@ -1,0 +1,50 @@
+name: lacunose
+
+x-app: &app
+  image: lacunose-edge-fn:latest
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    EDGE_FN_HOST: 0.0.0.0
+  networks: [supabase_default]
+
+services:
+  edge-fn:
+    <<: *app
+    build: { context: ., dockerfile: Dockerfile.edge-fn }
+    container_name: lacunose-edge-fn
+    expose: ["4000"]
+
+  worker-ingest:
+    <<: *app
+    container_name: lacunose-worker-ingest
+    command: ["node", "--import=tsx/esm", "src/workers/ingest.ts"]
+
+  worker-parse:
+    <<: *app
+    container_name: lacunose-worker-parse
+    command: ["node", "--import=tsx/esm", "src/workers/parse.ts"]
+
+  worker-embed:
+    <<: *app
+    container_name: lacunose-worker-embed
+    command: ["node", "--import=tsx/esm", "src/workers/embed.ts"]
+
+  worker-gap:
+    <<: *app
+    container_name: lacunose-worker-gap
+    command: ["node", "--import=tsx/esm", "src/workers/gap.ts"]
+
+  worker-critique:
+    <<: *app
+    container_name: lacunose-worker-critique
+    command: ["node", "--import=tsx/esm", "src/workers/critique.ts"]
+
+  worker-support:
+    <<: *app
+    container_name: lacunose-worker-support
+    command: ["node", "--import=tsx/esm", "src/workers/support.ts"]
+
+networks:
+  supabase_default:
+    external: true
