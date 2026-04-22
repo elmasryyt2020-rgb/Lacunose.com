@@ -155,7 +155,7 @@ export default function ScreenLibrary() {
                 </View>
                 <View style={{ marginTop: 10 }}>
                   <Text style={{ fontFamily: RGF.sansMedium, fontSize: 10, color: RGF.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>{FRAMES[it.field]?.label || it.field}</Text>
-                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.inkSoft }}>{it.gap_items?.[0]?.count || 0} gaps · {new Date(it.created_at).toLocaleDateString()}</Text>
+                  <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.inkSoft }}>{it.gap_items?.length ?? 0} gaps · {new Date(it.created_at).toLocaleDateString()}</Text>
                 </View>
               </TouchableOpacity>
             );

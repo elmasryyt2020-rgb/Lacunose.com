@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon, CategoryPill, ScoreDial } from '../../components/Shared';
@@ -22,6 +22,22 @@ function StreamStatus({ status, gapsSoFar, startedAt }: { status: string; gapsSo
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Rotating spinner — real animation, not a static CSS ring.
+  const spinValue = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const anim = Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [spinValue]);
+  const spin = spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const elapsedSec = startedAt ? Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000)) : 0;
 
   // Derive a synthetic 4-stage pipeline view from status + elapsed + gaps.
@@ -87,7 +103,7 @@ function StreamStatus({ status, gapsSoFar, startedAt }: { status: string; gapsSo
               <Icon name="check" size={10} color={RGF.bg} stroke={2.4} />
             </View>
           ) : s.active ? (
-            <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: RGF.ink, borderTopColor: 'transparent' }} />
+            <Animated.View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: RGF.ink, borderTopColor: 'transparent', transform: [{ rotate: spin }] }} />
           ) : (
             <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, borderColor: RGF.hair }} />
           )}
@@ -115,8 +131,8 @@ function GapCard({ rank, color, category, novelty, feas, title, desc, evidence =
       <Text style={{ fontFamily: RGF.sans, fontSize: 13.5, lineHeight: 20, color: RGF.inkSoft, marginBottom: 14 }}>{desc}</Text>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: collapsed ? 0 : 14 }}>
-        <ScoreDial value={novelty} label="Novelty" color={RGF.ink} />
-        <ScoreDial value={feas} label="Feasibility" color={RGF.ink} />
+        <ScoreDial value={novelty} label="Novelty" color={RGF.sky} />
+        <ScoreDial value={feas} label="Feasibility" color={RGF.mint} />
       </View>
 
       {!collapsed && evidence.length > 0 && (
@@ -146,6 +162,20 @@ function GapCard({ rank, color, category, novelty, feas, title, desc, evidence =
 
 function GapCardPending({ rank }: { rank: number }) {
   const { RGF } = useTheme();
+  const spinValue = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const anim = Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [spinValue]);
+  const spin = spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   return (
     <View style={{ backgroundColor: RGF.surface, borderRadius: 26, padding: 18, borderWidth: 1, borderColor: RGF.hair, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.7 }}>
       <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: RGF.bg, alignItems: 'center', justifyContent: 'center' }}>
@@ -155,7 +185,7 @@ function GapCardPending({ rank }: { rank: number }) {
         <View style={{ height: 10, borderRadius: 5, backgroundColor: RGF.hair, marginBottom: 8, width: '70%' }} />
         <View style={{ height: 8, borderRadius: 4, backgroundColor: RGF.hair, width: '50%' }} />
       </View>
-      <View style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: RGF.ink, borderTopColor: 'transparent' }} />
+      <Animated.View style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: RGF.ink, borderTopColor: 'transparent', transform: [{ rotate: spin }] }} />
     </View>
   );
 }
@@ -177,14 +207,10 @@ export default function ScreenResults() {
   return (
     <View style={[styles.container, { backgroundColor: RGF.bg }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 20 }}>
           <TouchableOpacity onPress={() => router.back()}>
             <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
           </TouchableOpacity>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <ChipIcon name="share" size={40} iconSize={16} bg={RGF.surface} />
-            <ChipIcon name="download" size={40} iconSize={16} bg={RGF.surface} />
-          </View>
         </View>
 
         <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>

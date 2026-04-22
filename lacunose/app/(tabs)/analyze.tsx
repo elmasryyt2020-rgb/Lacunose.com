@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, Icon } from '../../components/Shared';
 import { FieldClusterModal } from '../../components/FieldClusterModal';
@@ -86,7 +86,9 @@ export default function ScreenAnalyze() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { RGF } = useTheme();
-  
+  const { search } = useLocalSearchParams<{ search?: string }>();
+
+
   const [fieldSelection, setFieldSelection] = useState<{ frameId: string; openalexId?: string; label: string }>({
     frameId: 'medicine',
     label: FRAMES['medicine']?.label || 'Medicine'
@@ -116,6 +118,14 @@ export default function ScreenAnalyze() {
     // Clear — not seed with examples — when the field changes, so labels stay honest.
     setFrameValues(Object.fromEntries(currentFrame.rows.map(r => [r.key, ''])));
   }, [fieldSelection.frameId, fieldSelection.openalexId]);
+
+  // One-shot prefill from /home?search=... deep link.
+  useEffect(() => {
+    if (typeof search === 'string' && search.trim()) {
+      setTopic(search);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const yearsRange = useMemo<[number, number] | undefined>(() => {
     if (selectedYears === 'All time') return undefined;
@@ -225,9 +235,7 @@ export default function ScreenAnalyze() {
             placeholderTextColor={RGF.muted}
           />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <ChipIcon name="mic" size={32} iconSize={14} bg={RGF.bg} />
-            </View>
+            <View />
             <Text style={{ fontFamily: RGF.sans, fontSize: 12, color: RGF.muted }}>{topic.length} / 240</Text>
           </View>
         </View>

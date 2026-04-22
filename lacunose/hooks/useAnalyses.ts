@@ -11,7 +11,12 @@ export function useAnalyses(opts?: { limit?: number }) {
     queryKey: ['analyses', opts?.limit ?? null],
     queryFn: async () => {
       if (isMockMode) return mockAnalyses.slice(0, opts?.limit ?? mockAnalyses.length);
-      let q = supabase.from('gap_analyses').select('*, gap_items(count)').order('created_at', { ascending: false });
+      let q = supabase
+        .from('gap_analyses')
+        .select('*, gap_items(title, novelty_score, category, rank)')
+        .order('created_at', { ascending: false })
+        .order('rank', { foreignTable: 'gap_items', ascending: true })
+        .limit(1, { foreignTable: 'gap_items' });
       if (opts?.limit) q = q.limit(opts.limit);
       const { data, error } = await q;
       if (error) throw error;

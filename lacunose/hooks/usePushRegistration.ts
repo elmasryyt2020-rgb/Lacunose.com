@@ -17,6 +17,10 @@ export function usePushRegistration() {
 
   useEffect(() => {
     if (isMockMode || !user?.id || Platform.OS === 'web') return;
+    // FCM credentials (google-services.json) aren't wired for the hackathon
+    // build, so getExpoPushTokenAsync throws "Default FirebaseApp is not
+    // initialized" on Android. See POST_HACKATHON_ROADMAP.md.
+    if (Platform.OS === 'android') return;
     if (registered.current === user.id) return;
 
     (async () => {

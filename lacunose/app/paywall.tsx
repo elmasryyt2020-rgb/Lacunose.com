@@ -127,17 +127,17 @@ export default function ScreenPaywall() {
         {/* tier cards */}
         <View style={{ gap: 10, marginBottom: 20 }}>
           <TierCard tier="Free" price="$0" desc={`${entitlement?.analysesUsed || 0}/${entitlement?.tier === 'free' ? 3 : '∞'} analyses · top-5 gaps`} current={entitlement?.tier === 'free'} />
-          <TierCard tier="Pro" price="$20" period="/ month" desc="20 analyses · full list · Zotero · advisor" featured={entitlement?.tier === 'free'} current={entitlement?.tier === 'pro'} />
+          <TierCard tier="Pro" price="$20" period="/ month" desc="50 analyses · full list · Zotero · advisor" featured={entitlement?.tier === 'free'} current={entitlement?.tier === 'pro'} />
         </View>
 
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => handlePurchase('pro')}
-          disabled={purchasing || (!isMockMode && !proPackage)}
+          disabled={purchasing}
           style={{
             backgroundColor: RGF.ink, borderRadius: 28, padding: 18,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-            opacity: (purchasing || (!isMockMode && !proPackage)) ? 0.55 : 1,
+            opacity: purchasing ? 0.55 : 1,
           }}>
           <View>
             <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 16, color: RGF.bg }}>

@@ -205,10 +205,15 @@ This is the entire business model at maturity. Flow:
 
 ### Mobile app
 - **Library filter modal** — removed in hackathon cleanup. Consider re-adding if users ask for sort-by-date. Quick win, 30 min.
-- **Push notifications** — registered but never actually fire. Wire `worker-support` to send pushes on gap-analysis completion + support reply. Expo push SDK already installed.
-- **Export to PDF** — currently `/v1/analyses/:id/export?format=pdf` returns 501 Not Implemented. Use Puppeteer or a markdown→PDF library. 1 day.
+- **Push notifications** — Expo token registration runs on iOS only. Android is blocked on FCM credentials: follow https://docs.expo.dev/push-notifications/fcm-credentials/, add `google-services.json` + `android.googleServicesFile` to `app.json`, then remove the Android early-return in `hooks/usePushRegistration.ts`. Once tokens are flowing, wire `worker-support` to send pushes on gap-analysis completion + support reply. 2 hr after credentials are in Firebase.
+- **Share + PDF download on results screen** — Share/Download buttons hidden in hackathon build (`app/analyze/results.tsx`). Wire `/v1/analyses/:id/export?format=pdf` (currently returns 501) and iOS/Android share sheet. 1 day.
+- **Voice-input mic on topic field** — mic button hidden on home + analyze screens in hackathon. Wire `expo-speech-recognition` or native STT once recording-permissions copy is drafted. 3 hr.
 - **Zotero sync** — paywall copy promises it but not built. API docs at https://www.zotero.org/support/dev/web_api/v3/start. Pro feature, 2 days.
-- **Dark mode toggle** — theme supports it, no user toggle in UI. 1 hr to add to Me screen.
+- **Dark mode toggle** — theme still supports dark mode; toggle button hidden from Me screen header for hackathon. Re-add after auditing every screen's dark palette. 2 hr.
+- **Change Password flow** — row hidden on Me screen, modal unreachable but still present in the JSX. Users only use email OTP today. Re-enable once Supabase email+password is turned on. 1 hr.
+- **Contact Support screen** — row hidden on Me screen. `app/support.tsx` still exists as a route. 2 hr to wire intake form + email routing.
+- **Google Sign-In on Android** — `androidClientId` now read from `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` in `providers/AuthProvider.tsx`, but the env is empty. Manual steps (can't be automated): (1) create an Android OAuth 2.0 client in Google Cloud Console under the existing project; (2) register the debug keystore SHA-1 (`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`) and the release keystore SHA-1 from the `.jks` file; (3) paste the client ID into `.env`. The shared `webClientId` must belong to the same GCP project as the Android client. Missing SHA-1 is the most common `DEVELOPER_ERROR` cause.
+- **Home / library gap count is approximate** — after switching `useAnalyses` to fetch the top gap for home-card titles, `gap_items.length` on cards reflects "≥1 gap" rather than the true total. If exact per-analysis totals matter, add a separate `count(*)` query hook. 30 min.
 - **Analyses history pagination** — library loads all analyses at once. At 100+ per user this'll get slow. Add infinite scroll. 3 hr.
 
 ### Backend

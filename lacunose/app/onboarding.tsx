@@ -12,7 +12,7 @@
  * so the teaser analysis appears in their library.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Alert, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -369,10 +369,27 @@ function ScreenOnboardC({
   const { RGF, theme } = useTheme();
   const [elapsedSec, setElapsedSec] = useState(0);
   const [status, setStatus] = useState<'submitting' | 'queued' | 'running' | 'done' | 'failed'>('submitting');
-  const [gapCount, setGapCount] = useState(0);
+  const [gapsSoFar, setGapsSoFar] = useState<{ title: string; category: string; novelty_score?: number | null; feasibility_score?: number | null }[]>([]);
   const startedAtRef = useRef<number>(Date.now());
   const analysisIdRef = useRef<string | null>(null);
   const claimTokenRef = useRef<string | null>(null);
+
+  // Rotating spinner — shared across all `active` stage rows. Real animation,
+  // not a static `borderTopColor: transparent` circle.
+  const spinValue = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [spinValue]);
+  const spin = spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   // Submit on first render.
   useEffect(() => {
@@ -429,14 +446,15 @@ function ScreenOnboardC({
       try {
         const res = await pollAnonymousAnalysis(id, token);
         if (cancelled) return;
-        setGapCount(res.gaps.length);
+        setGapsSoFar(res.gaps);
         setStatus(res.analysis.status);
         if (res.analysis.status === 'failed') {
           onError(res.analysis.error ?? 'Analysis failed — please try a different topic.');
           return;
         }
-        // As soon as we have at least one gap, advance.
-        if (res.gaps.length > 0) {
+        // Wait until all gaps are in and the run is done, so the streaming UI
+        // is visible. Then advance to the reveal step.
+        if (res.analysis.status === 'done' && res.gaps.length > 0) {
           const top = res.gaps[0]!;
           onReady(
             {
@@ -472,13 +490,13 @@ function ScreenOnboardC({
     },
     {
       label: 'Reading abstracts · extracting signals',
-      done: gapCount > 0 || status === 'done',
-      active: status === 'running' && gapCount === 0 && elapsedSec >= 30,
+      done: gapsSoFar.length > 0 || status === 'done',
+      active: status === 'running' && gapsSoFar.length === 0 && elapsedSec >= 30,
     },
     {
-      label: gapCount > 0 ? `Synthesizing — ${gapCount} found` : 'Synthesizing gaps',
+      label: gapsSoFar.length > 0 ? `Synthesizing — ${gapsSoFar.length} found` : 'Synthesizing gaps',
       done: status === 'done',
-      active: status === 'running' && gapCount > 0,
+      active: status === 'running' && gapsSoFar.length > 0,
     },
   ];
   const doneCount = stages.filter((s) => s.done).length;
@@ -530,7 +548,7 @@ function ScreenOnboardC({
                 <Icon name="check" size={10} color={RGF.bg} stroke={2.4} />
               </View>
             ) : s.active ? (
-              <View
+              <Animated.View
                 style={{
                   width: 18,
                   height: 18,
@@ -538,6 +556,7 @@ function ScreenOnboardC({
                   borderWidth: 2,
                   borderColor: RGF.ink,
                   borderTopColor: 'transparent',
+                  transform: [{ rotate: spin }],
                 }}
               />
             ) : (
@@ -556,27 +575,47 @@ function ScreenOnboardC({
         ))}
       </View>
 
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: 18,
-        }}
-      >
-        <Text
+      {gapsSoFar.length > 0 && (
+        <View style={{ flex: 1, marginBottom: 16 }}>
+          <Text style={{ fontFamily: RGF.sansMedium, fontSize: 11, color: RGF.muted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
+            Gaps found so far · {gapsSoFar.length}
+          </Text>
+          <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+            {gapsSoFar.map((g, i) => (
+              <View key={i} style={{ backgroundColor: RGF.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: RGF.hair, gap: 8 }}>
+                <CategoryPill kind={g.category} />
+                <Text style={{ fontFamily: RGF.display, fontSize: 16, lineHeight: 20, color: RGF.ink }}>
+                  {g.title}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {gapsSoFar.length === 0 && (
+        <View
           style={{
-            fontFamily: RGF.sans,
-            fontSize: 13,
-            color: RGF.muted,
-            textAlign: 'center',
-            lineHeight: 20,
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 18,
           }}
         >
-          We&rsquo;re hunting through thousands of papers right now.{'\n'}
-          Your first gap will land here in ~{Math.max(5, 90 - elapsedSec)}s.
-        </Text>
-      </View>
+          <Text
+            style={{
+              fontFamily: RGF.sans,
+              fontSize: 13,
+              color: RGF.muted,
+              textAlign: 'center',
+              lineHeight: 20,
+            }}
+          >
+            We&rsquo;re hunting through thousands of papers right now.{'\n'}
+            Your first gap will land here in ~{Math.max(5, 90 - elapsedSec)}s.
+          </Text>
+        </View>
+      )}
     </OnboardShell>
   );
 }

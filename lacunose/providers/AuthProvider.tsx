@@ -11,6 +11,12 @@ import { claimAnonymousIfPending } from '../lib/onboarding';
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'mock_client_id',
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  // Android Google Sign-In requires a separate OAuth 2.0 client in Google
+  // Cloud Console with the app's SHA-1 fingerprint registered. See
+  // POST_HACKATHON_ROADMAP.md. Missing SHA-1 is the most common DEVELOPER_ERROR.
+  ...(process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
+    ? { androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID }
+    : {}),
 });
 
 type AuthContextType = {

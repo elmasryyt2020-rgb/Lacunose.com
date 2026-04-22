@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../../constants/theme';
 import { ChipIcon, CategoryPill } from '../../components/Shared';
 import { useGapItem } from '../../hooks/useGapItem';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
+import { isMockMode } from '../../lib/mocks';
 
 function ScoreBig({ value, label, color }: any) {
   const { RGF } = useTheme();
@@ -26,6 +30,46 @@ export default function ScreenDetail() {
   const { RGF } = useTheme();
   const { gapId } = useLocalSearchParams<{ gapId: string }>();
   const { data: gap, isLoading } = useGapItem(gapId || '');
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isMockMode || !user?.id || !gapId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('saved_items')
+        .select('gap_id')
+        .eq('user_id', user.id)
+        .eq('gap_id', gapId)
+        .maybeSingle();
+      if (!cancelled) setIsSaved(!!data);
+    })();
+    return () => { cancelled = true; };
+  }, [gapId, user?.id]);
+
+  const toggleSaved = async () => {
+    if (saving || !user?.id || !gapId || isMockMode) return;
+    setSaving(true);
+    const next = !isSaved;
+    setIsSaved(next);
+    try {
+      if (next) {
+        const { error } = await supabase.from('saved_items').insert({ user_id: user.id, gap_id: gapId });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('saved_items').delete().eq('user_id', user.id).eq('gap_id', gapId);
+        if (error) throw error;
+      }
+      void queryClient.invalidateQueries({ queryKey: ['savedGaps'] });
+    } catch {
+      setIsSaved(!next);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (isLoading || !gap) {
     return (
@@ -42,7 +86,15 @@ export default function ScreenDetail() {
           <TouchableOpacity onPress={() => router.back()}>
             <ChipIcon name="chevL" size={40} iconSize={14} bg={RGF.surface} />
           </TouchableOpacity>
-          <ChipIcon name="bookmark" size={40} iconSize={16} bg={RGF.surface} />
+          <TouchableOpacity onPress={toggleSaved} activeOpacity={0.7} disabled={saving}>
+            <ChipIcon
+              name="bookmark"
+              size={40}
+              iconSize={16}
+              bg={isSaved ? RGF.ink : RGF.surface}
+              color={isSaved ? RGF.bg : RGF.ink}
+            />
+          </TouchableOpacity>
         </View>
 
         <View style={{ marginBottom: 18 }}>

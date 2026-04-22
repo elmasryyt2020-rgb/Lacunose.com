@@ -36,7 +36,7 @@ function SettingRow({ icon, label, destructive, onPress }: any) {
 export default function ScreenMe() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { RGF, theme, setMode } = useTheme();
+  const { RGF } = useTheme();
   
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
@@ -166,9 +166,6 @@ export default function ScreenMe() {
           <Text style={{ fontFamily: RGF.display, fontSize: 40, lineHeight: 41, letterSpacing: -1.2, color: RGF.ink }}>
             Profile
           </Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => setMode(theme === 'dark' ? 'light' : 'dark')}>
-            <ChipIcon name="settings" size={40} iconSize={16} bg={RGF.surface} />
-          </TouchableOpacity>
         </View>
 
         <View style={{ backgroundColor: RGF.surface, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: RGF.hair, marginBottom: 32, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
@@ -241,11 +238,9 @@ export default function ScreenMe() {
 
         <View style={{ backgroundColor: RGF.surface, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 4, borderWidth: 1, borderColor: RGF.hair }}>
           <SettingRow icon="person" label="Edit Profile" onPress={() => setEditModalOpen(true)} />
-          <SettingRow icon="lock" label="Change Password" onPress={() => setPasswordModalOpen(true)} />
           {/* ORCID integration — hidden for hackathon; re-enable once real OAuth is wired. */}
           {/* <SettingRow icon="book" label="ORCID Integration" onPress={() => setOrgModalOpen(true)} /> */}
           <SettingRow icon="bell" label="Notifications" onPress={() => router.push('/notifications')} />
-          <SettingRow icon="mail" label="Contact Support" onPress={() => router.push('/support')} />
           <SettingRow icon="bookmark" label="Restore Purchases" onPress={handleRestore} />
           <SettingRow icon="chart" label="Analytics preferences" onPress={() => setAnalyticsModalOpen(true)} />
         </View>

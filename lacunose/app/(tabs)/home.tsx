@@ -10,10 +10,10 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useEntitlement } from '../../hooks/useEntitlement';
 
-function RecentCard({ topic, gap, novelty, category, color, status }: any) {
+function RecentCard({ topic, gap, novelty, category, color, status, onPress }: any) {
   const { RGF } = useTheme();
   return (
-    <TouchableOpacity activeOpacity={0.8} style={[styles.recentCard, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
+    <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={[styles.recentCard, { backgroundColor: RGF.surface, borderColor: RGF.hair }]}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
         <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="gap" size={18} color={RGF.ink} />
@@ -74,7 +74,7 @@ export default function ScreenHome() {
     ? notifications.filter((n: any) => !n.is_read).length
     : 0;
   const monthlyGapCount = Array.isArray(analyses)
-    ? analyses.reduce((sum: number, a: any) => sum + (a.gap_items?.[0]?.count ?? 0), 0)
+    ? analyses.reduce((sum: number, a: any) => sum + (a.gap_items?.length ?? 0), 0)
     : 0;
 
   return (
@@ -138,12 +138,8 @@ export default function ScreenHome() {
             />
             
             <View style={[styles.omniRow, { borderColor: RGF.hair }]}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={[styles.omniAction, { backgroundColor: RGF.bg, borderColor: RGF.hair }]}>
-                  <Icon name="mic" size={16} color={RGF.ink} />
-                </TouchableOpacity>
-              </View>
-              
+              <View />
+
               <TouchableOpacity onPress={handleSearch} activeOpacity={0.8} style={[styles.omniSubmit, { backgroundColor: RGF.ink, opacity: topic.trim().length > 0 ? 1 : 0.5 }]}>
                 <Text style={{ fontFamily: RGF.sansSemiBold, fontSize: 14, color: RGF.bg, marginRight: 6 }}>Analyze</Text>
                 <Icon name="arrow" size={14} color={RGF.bg} />
@@ -175,13 +171,17 @@ export default function ScreenHome() {
           {analyses?.map((a: any, i: number) => {
             const frameColor = (RGF as any)[FRAMES[a.field]?.rows[0]?.color || 'lavender'];
             return (
-              <RecentCard 
-                key={a.id} 
-                topic={a.topic} 
-                gap={a.gap_items?.[0]?.title || 'Analysis in progress...'} 
-                novelty={a.gap_items?.[0]?.novelty_score || 0} 
-                category={a.gap_items?.[0]?.category || 'methodology'} 
-                color={frameColor} 
+              <RecentCard
+                key={a.id}
+                onPress={() => router.push(`/analyze/results?id=${a.id}`)}
+                topic={a.topic}
+                gap={
+                  a.gap_items?.[0]?.title
+                    ?? (a.status === 'done' ? 'No gaps found' : 'Analysis in progress…')
+                }
+                novelty={a.gap_items?.[0]?.novelty_score || 0}
+                category={a.gap_items?.[0]?.category || 'methodology'}
+                color={frameColor}
                 status={a.status}
               />
             );

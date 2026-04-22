@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Shared';
 import { useTheme } from '../../constants/theme';
 
@@ -8,8 +9,9 @@ function FloatingNav({ state, descriptors, navigation }: any) {
   // Theme-aware — the previous static RGF import froze the bar to light mode
   // even after the user toggled dark from the profile screen.
   const { RGF } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.floatingNavContainer}>
+    <View style={[styles.floatingNavContainer, { bottom: Math.max(28, insets.bottom + 12) }]}>
       <View style={[
         styles.floatingNav,
         { backgroundColor: RGF.surface, borderColor: RGF.hair },
@@ -77,7 +79,6 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   floatingNavContainer: {
     position: 'absolute',
-    bottom: 28,
     left: 0,
     right: 0,
     alignItems: 'center',
