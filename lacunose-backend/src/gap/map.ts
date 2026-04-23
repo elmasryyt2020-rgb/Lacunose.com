@@ -17,9 +17,16 @@ import type {
   StructuredFrameValue,
 } from '@lacunose/types';
 import { llm, parallelMap } from '../llm/index.js';
+import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { isVerbatimWithEllipsis } from './verbatim.js';
 import { mapSystemPrompt, mapUserPrompt } from './prompts/map.js';
+
+// A tiny subset of the llm surface the gap phases actually use. The global
+// `llm` export and any `ScopedLLM` both satisfy this shape, so phases can be
+// invoked with either — unit pipeline paths pass the default, /v1/compare
+// passes a Haiku-pinned scoped instance.
+type PhaseLLM = Pick<typeof llm, 'chatJson'> | ScopedLLM;
 
 const logger = log.child('gap:map');
 
@@ -43,7 +50,12 @@ export async function mapPhase(
   topic: string,
   structuredFrame?: StructuredFrameValue,
   signal?: AbortSignal,
+  llmOverride?: PhaseLLM,
 ): Promise<GapSignal[]> {
+  // Default to the global llm singleton. Compare path passes a Haiku-pinned
+  // ScopedLLM so the same pipeline runs on a different model without
+  // touching env.LLM_PROVIDER.
+  const llmInstance: PhaseLLM = llmOverride ?? llm;
   if (sections.length === 0) {
     logger.info('mapPhase: empty input', { field: field.id });
     return [];
@@ -59,7 +71,7 @@ export async function mapPhase(
       const user = mapUserPrompt(section, topic, structuredFrame);
       const extracted: GapSignal[] = [];
       try {
-        const raw = await llm.chatJson({
+        const raw = await llmInstance.chatJson({
           model: 'map',
           messages: [
             { role: 'system', content: system, cache: true },

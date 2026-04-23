@@ -22,6 +22,8 @@ import webhookRoutes from './routes/webhooks.js';
 import accountRoutes from './routes/account.js';
 import pushRoutes from './routes/push.js';
 import healthRoutes from './routes/health.js';
+import betaRoutes from './routes/beta.js';
+import compareRoutes from './routes/compare.js';
 import { verifyModelsOnBoot } from '../llm/verifyModels.js';
 import { closeAllQueues } from './queues.js';
 
@@ -83,6 +85,8 @@ async function main(): Promise<void> {
   await app.register(webhookRoutes);
   await app.register(accountRoutes);
   await app.register(pushRoutes);
+  await app.register(betaRoutes);
+  await app.register(compareRoutes);
 
   // Global error handler — never leaks stack traces.
   app.setErrorHandler((err, req: FastifyRequest, reply: FastifyReply) => {

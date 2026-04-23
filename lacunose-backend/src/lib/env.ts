@@ -65,6 +65,10 @@ const schema = z.object({
   PRO_MONTHLY_ANALYSES: z.coerce.number().default(50),
   PREMIUM_MONTHLY_ANALYSES: z.coerce.number().default(150),
   MAX_ANALYSIS_TOKENS: z.coerce.number().default(500_000),
+
+  // Beta web app — shared invite code gates /v1/beta/* and /v1/compare.
+  // Prevents drive-by traffic from draining Opus quota during the hackathon.
+  BETA_INVITE_CODE: z.string().min(8).default('lacunose-dev-code'),
 });
 
 const parsed = schema.safeParse(process.env);

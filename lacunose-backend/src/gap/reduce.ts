@@ -22,8 +22,12 @@ import type {
 } from '@lacunose/types';
 import { GAP_CATEGORIES } from '@lacunose/types';
 import { llm, parallelMap } from '../llm/index.js';
+import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { reduceSystemPrompt, reduceUserPrompt } from './prompts/reduce.js';
+
+// Same pattern as map.ts — accept either the global llm or a ScopedLLM.
+type PhaseLLM = Pick<typeof llm, 'chatJson'> | ScopedLLM;
 
 const logger = log.child('gap:reduce');
 
@@ -60,7 +64,9 @@ export async function reducePhase(
   field: FieldAdapter,
   topic: string,
   structuredFrame?: StructuredFrameValue,
+  llmOverride?: PhaseLLM,
 ): Promise<CandidateGap[]> {
+  const llmInstance: PhaseLLM = llmOverride ?? llm;
   if (clusters.length === 0) {
     logger.info('reducePhase: empty input', { field: field.id });
     return [];
@@ -88,7 +94,7 @@ export async function reducePhase(
 
       let raw: z.infer<typeof CandidatesSchema>;
       try {
-        raw = await llm.chatJson({
+        raw = await llmInstance.chatJson({
           model: 'synth',
           messages: [
             { role: 'system', content: system, cache: true },

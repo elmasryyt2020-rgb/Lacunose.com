@@ -9,8 +9,11 @@
 import { z } from 'zod';
 import type { CandidateGap, FieldAdapter } from '@lacunose/types';
 import { llm, parallelMap } from '../llm/index.js';
+import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { critiqueSystemPrompt, critiqueUserPrompt } from './prompts/critique.js';
+
+type PhaseLLM = Pick<typeof llm, 'chatJson'> | ScopedLLM;
 
 const logger = log.child('gap:critique');
 
@@ -28,7 +31,9 @@ const VerdictSchema = z.object({
 export async function critiquePhase(
   candidates: CandidateGap[],
   field: FieldAdapter,
+  llmOverride?: PhaseLLM,
 ): Promise<CandidateGap[]> {
+  const llmInstance: PhaseLLM = llmOverride ?? llm;
   if (candidates.length === 0) {
     logger.info('critiquePhase: empty input');
     return [];
@@ -40,7 +45,7 @@ export async function critiquePhase(
     candidates,
     async (cand) => {
       try {
-        const verdict = await llm.chatJson({
+        const verdict = await llmInstance.chatJson({
           model: 'critique',
           messages: [
             { role: 'system', content: system, cache: true },
