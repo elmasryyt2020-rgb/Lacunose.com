@@ -101,7 +101,7 @@ export async function reducePhase(
             { role: 'user', content: user },
           ],
           temperature: 0.3,
-          maxTokens: 2_500,
+          maxTokens: 4_000,
           jsonSchema: { type: 'array' },
           schema: CandidatesSchema,
         });

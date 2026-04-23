@@ -108,9 +108,13 @@ export function createScopedLLM(spec: ModelOverrideSpec): ScopedLLM {
   async function chatJson<T>(opts: ChatOptions & { schema: z.ZodType<T> }): Promise<T> {
     const { schema, ...rest } = opts;
     const res = await chat(rest);
+    // Haiku frequently wraps JSON in markdown fences (```json ... ```) despite
+    // the no-fences instruction in the system prompt. Strip them before parsing
+    // so the Haiku column of /v1/compare doesn't die on every other call.
+    const stripped = res.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
     let parsed: unknown;
     try {
-      parsed = JSON.parse(res.content);
+      parsed = JSON.parse(stripped);
     } catch (e) {
       throw new Error(
         `scopedLLM.chatJson: response was not valid JSON (model=${res.model}): ${(e as Error).message}. ` +
