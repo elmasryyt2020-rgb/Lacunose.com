@@ -146,34 +146,18 @@ Real production numbers from a Playwright stress test of 6 runs across 3 topics 
 ## Architecture
 
 ```
-flowchart TD
-    iOS & Android & Web["Web (Next.js)"] --> Gateway["Caddy (TLS + Reverse Proxy)"]
-
-    Gateway --> EdgeFn["Fastify Edge API (fn.lacunose.com)"]
-    Gateway --> Supabase["Supabase (api.lacunose.com)"]
-
-    EdgeFn --> Ingest["Ingest\n(7 DB adapters)"]
-    EdgeFn --> SSE["SSE Compare\n(Haiku, ephemeral)"]
-    EdgeFn --> BullMQ["BullMQ Workers"]
-
-    BullMQ --> Map["MAP\n(Haiku 4.5 ×12)"]
-    BullMQ --> Reduce["REDUCE\n(Opus 4.7 ×6)"]
-    BullMQ --> Critique["CRITIQUE\n(Haiku 4.5 ×12)"]
-
-    Map & Reduce & Critique --> PG[("Postgres\n(pgvector + FTS)")]
-
-    Ingest --> PG
-    PG --> Realtime["Supabase Realtime"]
-    Realtime --> iOS & Android & Web
-
-    Supabase --> Auth["Auth (GoTrue)"]
-    Supabase --> REST2["REST (PostgREST)"]
-    Supabase --> Storage["Storage"]
-
-    PG --> Redis["Redis (BullMQ queue + cache)"]
-    PG --> Cohere["Cohere\n(rerank + embed)"]
-
-    BullMQ --> SMTP["Zoho SMTP\n(support bridge)"]
+Mobile (Expo/RN)   Web (Next.js)
+       \               /
+        \             /
+   Fastify edge (fn.lacunose.com)
+       /              \
+   BullMQ chain        SSE compare-stream
+ (Opus, persisted)     (Haiku, ephemeral)
+       \              /
+        \            /
+   Postgres (pgvector + FTS) + Supabase Realtime
+              |
+         Redis · Docker · Hostinger KVM4
 ```
 
 **Why this architecture:**
