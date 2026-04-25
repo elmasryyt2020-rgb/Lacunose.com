@@ -6,7 +6,7 @@
 
 Submit a topic. Lacunose reads up to 1,800 papers across 7 scientific databases in parallel, orchestrates ~60 Claude calls through a 7-stage pipeline, and returns ranked research gaps — each grounded in a verbatim quote from real literature. First gap appears in ~25-35 seconds; full ranked top-10 lands in ~2-4 minutes depending on retrieval and corpus size, for ~$1.74 in real Anthropic credits per Opus run (~$0.20 for a Haiku-only A/B).
 
-**Live demo:** https://lacunose.com/app · **Invite code:** `lacunose-J8VejgrbErh5`
+**Live demo:** https://lacunose.com/app · **Invite code:** `lacunose-opus-eval`
 **45-second live A/B clip:** [`Lacunose: Opus 4.7 vs Haiku 4.5 streaming side-by-side`](https://youtu.be/9xNO4jrLhAU) ← *if you only have a minute, watch this*
 **Full pitch video:** [`Lacunose.com | Opus 4.7 submission`](https://youtu.be/YqbfJSfJ6v0)
 **Mobile app:** both launching soon.
@@ -145,19 +145,35 @@ Real production numbers from a Playwright stress test of 6 runs across 3 topics 
 
 ## Architecture
 
-```
-Mobile (Expo/RN)   Web (Next.js)
-       \               /
-        \             /
-   Fastify edge (fn.lacunose.com)
-       /              \
-   BullMQ chain        SSE compare-stream
- (Opus, persisted)     (Haiku, ephemeral)
-       \              /
-        \            /
-   Postgres (pgvector + FTS) + Supabase Realtime
-              |
-         Redis · Docker · Hostinger KVM4
+```mermaid
+flowchart TD
+    iOS & Android & Web["Web (Next.js)"] --> Gateway["Caddy (TLS + Reverse Proxy)"]
+
+    Gateway --> EdgeFn["Fastify Edge API (fn.lacunose.com)"]
+    Gateway --> Supabase["Supabase (api.lacunose.com)"]
+
+    EdgeFn --> Ingest["Ingest\n(7 DB adapters)"]
+    EdgeFn --> SSE["SSE Compare\n(Haiku, ephemeral)"]
+    EdgeFn --> BullMQ["BullMQ Workers"]
+
+    BullMQ --> Map["MAP\n(Haiku 4.5 ×12)"]
+    BullMQ --> Reduce["REDUCE\n(Opus 4.7 ×6)"]
+    BullMQ --> Critique["CRITIQUE\n(Haiku 4.5 ×12)"]
+
+    Map & Reduce & Critique --> PG[("Postgres\n(pgvector + FTS)")]
+
+    Ingest --> PG
+    PG --> Realtime["Supabase Realtime"]
+    Realtime --> iOS & Android & Web
+
+    Supabase --> Auth["Auth (GoTrue)"]
+    Supabase --> REST2["REST (PostgREST)"]
+    Supabase --> Storage["Storage"]
+
+    PG --> Redis["Redis (BullMQ queue + cache)"]
+    PG --> Cohere["Cohere\n(rerank + embed)"]
+
+    BullMQ --> SMTP["Zoho SMTP\n(support bridge)"]
 ```
 
 **Why this architecture:**
@@ -219,7 +235,7 @@ lacunose.com/
 **Option A — the headline live A/B (recommended).**
 
 1. Go to https://lacunose.com/app
-2. Enter invite code `lacunose-J8VejgrbErh5`
+2. Enter invite code `lacunose-opus-eval`
 3. The "Live compare with Haiku 4.5" toggle is **on by default**. Leave it on.
 4. Submit `whole tooth regeneration` (medicine). Both columns start filling within ~25–35 seconds. Opus on the left, Haiku on the right, same 1,811-paper corpus, same retrieval, different reasoning model.
 
