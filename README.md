@@ -19,6 +19,7 @@ Submit `whole tooth regeneration` (medicine). Toggle "Live compare with Haiku 4.
 ![Live A/B compare: Opus 4.7 vs Haiku 4.5 streaming side-by-side against an identical paper corpus](https://lacunose.com/ab-compare.png)
 
 [![Watch the 45-second live A/B](https://img.youtube.com/vi/9xNO4jrLhAU/hqdefault.jpg)](https://youtu.be/9xNO4jrLhAU)
+
 *45-second live recording — same topic, same corpus, both columns filling concurrently.*
 
 > *Same topic. Same corpus. Same pipeline. Different reasoning model.* Across a 6-run Playwright stress test on the live deployment (3 topics × 2 runs each), Opus 4.7 averaged **$1.74 / 60 calls / 6.2 gaps** per analysis; Haiku 4.5 on the same retrieval averaged **$0.20 / 61 calls / 4.0 gaps**. That's a **~9× cost premium for Opus 4.7** and the case this evaluation is making. Haiku output is fluent and grounded but coarser; Opus output names specific populations (`patients ≥75`), specific contradictions (`preclinical cardiac-mass reduction vs. clinical HF outcomes`), and specific methodology gaps (`Delphi-derived core outcome set for orthotopic whole-tooth regeneration`).
