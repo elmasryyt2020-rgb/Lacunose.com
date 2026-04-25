@@ -4,9 +4,9 @@
 
 **A gap-finding engine for research, powered by Claude Opus 4.7.**
 
-Submit a topic. Lacunose reads up to 1,800 papers across 7 scientific databases in parallel, orchestrates ~60 Claude calls through a 7-stage pipeline, and returns ranked research gaps — each grounded in a verbatim quote from real literature. First gap appears in ~25-35 seconds; full ranked top-10 lands in ~2-4 minutes depending on retrieval and corpus size, for ~$1.74 in real Anthropic credits per Opus run (~$0.20 for a Haiku-only A/B).
+Submit a topic. Lacunose reads up to 1,800 papers across 7 scientific databases in parallel, orchestrates ~60 Claude calls through a 7-stage pipeline, and returns ranked research gaps — each grounded in a verbatim quote from real literature. First gap appears in ~25-35 seconds; full ranked top-10 lands in ~2-4 minutes depending on retrieval and corpus size, for ~$1.74 in real Anthropic credits per Opus run (about $0.20 for a Haiku-only A/B).
 
-**Live demo:** https://lacunose.com/app · **Invite code:** `lacunose-J8VejgrbErh5`
+**Live demo:** https://lacunose.com/app · **Invite code:** `lacunose-opus-eval`
 **45-second live A/B clip:** [`Lacunose: Opus 4.7 vs Haiku 4.5 streaming side-by-side`](https://youtu.be/9xNO4jrLhAU) ← *if you only have a minute, watch this*
 **Full pitch video:** [`Lacunose.com | Opus 4.7 submission`](https://youtu.be/YqbfJSfJ6v0)
 **Mobile app:** both launching soon.
