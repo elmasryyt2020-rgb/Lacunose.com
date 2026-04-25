@@ -45,6 +45,18 @@ services:
     container_name: lacunose-worker-support
     command: ["node", "--import=tsx/esm", "src/workers/support.ts"]
 
+  # Waitlist marketing site served at lacunose.com (Caddy reverse-proxies here)
+  lacunose-web:
+    image: lacunose-web:latest
+    build:
+      context: /home/deploy/lacunose-website
+      dockerfile: Dockerfile
+    container_name: lacunose-web
+    restart: unless-stopped
+    env_file: /home/deploy/lacunose-website/.env.local
+    expose: ["3000"]
+    networks: [supabase_default]
+
 networks:
   supabase_default:
     external: true

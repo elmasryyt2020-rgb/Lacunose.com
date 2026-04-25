@@ -1,0 +1,29 @@
+# Override: mount custom OTP-only email templates into the supabase-auth
+# (GoTrue) container and point the GOTRUE_MAILER_TEMPLATES_* env vars at them.
+#
+# Templates contain {{ .Token }} only — no {{ .ConfirmationURL }} — because
+# the Lacunose mobile app uses OTP verification (verifyOtp), not deep-links.
+#
+# Templates live at /root/supabase/docker/gotrue-templates/ on the host.
+#
+# Apply with:
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.s3.yml \
+#                  -f docker-compose.caddy.yml \
+#                  -f docker-compose.auth-templates.yml \
+#                  up -d auth
+services:
+  auth:
+    volumes:
+      - ./gotrue-templates:/etc/gotrue/templates:ro
+    environment:
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: /etc/gotrue/templates/magic_link.html
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: /etc/gotrue/templates/confirmation.html
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: /etc/gotrue/templates/recovery.html
+      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: /etc/gotrue/templates/email_change.html
+      GOTRUE_MAILER_TEMPLATES_INVITE: /etc/gotrue/templates/invite.html
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Your Lacunose sign-in code"
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Confirm your Lacunose email"
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: "Reset your Lacunose password"
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: "Confirm your new email address"
+      GOTRUE_MAILER_SUBJECTS_INVITE: "You've been invited to Lacunose"

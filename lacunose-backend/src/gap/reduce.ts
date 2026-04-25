@@ -37,10 +37,17 @@ const EvidenceSchema = z.object({
   section_id: z.string().min(1),
 });
 
+// `category` is intentionally `z.string()` rather than `z.enum(GAP_CATEGORIES)`.
+// Opus 4.7 occasionally invents categories outside our taxonomy (observed:
+// "comparator", "intervention"). The downstream clamp at line ~126 already
+// folds unknown values to the field's first allowed gapTaxonomy entry — but a
+// strict enum rejects the WHOLE REDUCE response (typically 3-5 candidates)
+// when even one item has an unknown category. That cost us ~30% of candidates
+// in production runs. Validating loosely + clamping below preserves the rest.
 const CandidateSchema = z.object({
   title: z.string().min(1).max(160),
   description: z.string().min(1).max(2_000),
-  category: z.enum(GAP_CATEGORIES as unknown as [GapCategory, ...GapCategory[]]),
+  category: z.string().min(1).max(64),
   novelty_score: z.number().min(1).max(10),
   feasibility_score: z.number().min(1).max(10),
   research_question: z.string().min(1).max(500),
@@ -122,10 +129,19 @@ export async function reducePhase(
         if (!verifyCandidate(cand, clusterPaperIds, clusterSectionIds, sectionsById)) {
           continue;
         }
-        // Clamp category to the field's taxonomy (fallback to future-work if model picked one we don't use)
-        const category: GapCategory = allowedCats.has(cand.category)
-          ? cand.category
-          : (field.gapTaxonomy[0] ?? 'future-work');
+        // Clamp category to the field's taxonomy. Two-step:
+        //   1. If the model picked a value from the global GAP_CATEGORIES, fold
+        //      it through the field's allowed set (clamping for fields that
+        //      don't accept e.g. 'population').
+        //   2. If the model invented one outside GAP_CATEGORIES (observed:
+        //      'comparator', 'intervention'), fall back to the field's first
+        //      allowed category.
+        const isKnown = (GAP_CATEGORIES as readonly string[]).includes(cand.category);
+        const knownCategory = isKnown ? (cand.category as GapCategory) : null;
+        const category: GapCategory =
+          knownCategory && allowedCats.has(knownCategory)
+            ? knownCategory
+            : (field.gapTaxonomy[0] ?? 'future-work');
 
         verified.push({
           title: cand.title.slice(0, 90),

@@ -175,7 +175,7 @@ async function runGapAnalysisImpl(opts: RunGapOpts): Promise<void> {
     // 5d. rank + trim
     const rankT0 = Date.now();
     const topN = opts.isAnonymous ? 3 : 10;
-    const ranked = rankGaps(grounded, { topN });
+    const ranked = await rankGaps(grounded, { topN });
     logger.info('phase: rank', {
       analysisId,
       inputCount: grounded.length,

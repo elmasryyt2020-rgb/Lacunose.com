@@ -15,7 +15,8 @@
  */
 import type { CandidateGap } from '@lacunose/types';
 import { log } from '../lib/logger.js';
-import { cosine, hashEmbed } from '../enrich/hashEmbed.js';
+import { cosine } from '../enrich/hashEmbed.js';
+import { embedShortTexts } from '../enrich/cohereEmbed.js';
 
 const logger = log.child('gap:rank');
 
@@ -37,10 +38,21 @@ interface Scored {
  * @param opts.topN   cap on output. Defaults to 10 for auth runs;
  *                    anonymous onboarding passes 3 so the teaser is cheap.
  */
-export function rankGaps(candidates: CandidateGap[], opts: { topN?: number } = {}): CandidateGap[] {
+export async function rankGaps(
+  candidates: CandidateGap[],
+  opts: { topN?: number } = {},
+): Promise<CandidateGap[]> {
   const topN = opts.topN ?? 10;
   if (candidates.length === 0) return [];
   const t0 = Date.now();
+
+  // Embed all titles in one Cohere batch ('classification' input type) so the
+  // pairwise cosine dedupe below operates on real semantic vectors instead of
+  // lexical-overlap hashes. Paraphrased near-duplicates now collapse correctly.
+  const titleVecs = await embedShortTexts(
+    candidates.map((c) => c.title),
+    'classification',
+  );
 
   const scored: Scored[] = candidates.map((c, i) => {
     const density = Math.min(c.evidence.length / 4, 1) * 10;
@@ -50,7 +62,7 @@ export function rankGaps(candidates: CandidateGap[], opts: { topN?: number } = {
       candidate: c,
       score,
       density,
-      titleVec: hashEmbed(c.title),
+      titleVec: titleVecs[i] ?? [],
       dropped: false,
     };
   });

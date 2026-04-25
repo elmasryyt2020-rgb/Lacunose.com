@@ -88,6 +88,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     const claimToken = randomClaimToken();
     const claimExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
+    // The `is_anonymous` field has split semantics in this flow — keeping
+    // them separate is intentional, not a bug:
+    //   • is_anonymous on the gap_analyses ROW = true. This routes status
+    //     polling through the claim-token path (no Supabase JWT required),
+    //     which is what the web /app and unauthed mobile onboarding need.
+    //   • is_anonymous on the ingest JOB (set below) = false. This makes the
+    //     worker pull the full 500-paper corpus and emit 10 ranked gaps, not
+    //     the 200/3 teaser the mobile-onboarding anonymous flow uses.
+    // The beta path therefore gets "auth-grade output, no-auth polling".
     const { data: inserted, error: insertErr } = await sb
       .from('gap_analyses')
       .insert({

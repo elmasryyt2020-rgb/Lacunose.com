@@ -125,7 +125,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     // 1. Verify the analysis exists + token matches + is done.
     const { data: analysis, error: aErr } = await sb
       .from('gap_analyses')
-      .select('id, topic, field, structured_frame, filters, status, is_anonymous, anonymous_claim_token, cost_tokens')
+      .select('id, topic, field, structured_frame, filters, status, is_anonymous, anonymous_claim_token, cost_tokens, paper_ids')
       .eq('id', analysis_id)
       .maybeSingle();
     if (aErr || !analysis) {
@@ -167,11 +167,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       evidence: Array.isArray(r.evidence) ? (r.evidence as GapEvidence[]) : [],
     }));
 
-    // Paper set — the ingest worker stores a cache in `query_cache` keyed by
-    // a stable hash of {topic, field, concept_id, years, include_preprints,
-    // open_access_only}. We recompute that hash and look up the paper_ids so
-    // Haiku sees the SAME corpus Opus saw. Matches the hash shape in
-    // src/ingest/index.ts:queryHash.
+    // Resolve the paper set the original ingest run saw. Three-tier preference,
+    // most-faithful first, with the chosen tier reported in the response so the
+    // caller (and judges) can see whether the A/B is corpus-identical:
+    //   1. gap_analyses.paper_ids      — written by the ingest worker since
+    //                                    migration 0004. Same corpus as Opus.
+    //   2. query_cache by topic-hash   — pre-0004 fallback; matches as long as
+    //                                    the 7-day TTL hasn't expired.
+    //   3. evidence-cited papers only  — last resort. NOT corpus-identical:
+    //                                    biases the Haiku rerun toward papers
+    //                                    Opus already chose to cite. Surfaced
+    //                                    via `paper_set_source` so the result
+    //                                    can be flagged on the UI.
     const topic = analysis.topic as string;
     const field = analysis.field as string;
     const filters = (analysis.filters ?? {}) as {
@@ -182,36 +189,49 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     };
     const structuredFrame = (analysis.structured_frame ?? undefined) as IngestJob['structured_frame'];
 
-    const cacheKey = JSON.stringify({
-      topic: topic.toLowerCase().trim(),
-      field: field ?? null,
-      concept_id: filters.concept_id ?? null,
-      years: filters.years ?? null,
-      include_preprints: filters.include_preprints ?? null,
-      open_access_only: filters.open_access_only ?? null,
-    });
-    const queryHash = createHash('sha256').update(cacheKey).digest('hex');
+    let paperIds: string[] = [];
+    let paperSetSource: 'analysis_row' | 'query_cache' | 'cited_evidence' = 'analysis_row';
 
-    const { data: cacheRow } = await sb
-      .from('query_cache')
-      .select('paper_ids')
-      .eq('query_hash', queryHash)
-      .maybeSingle();
-
-    let paperIds: string[] = (cacheRow?.paper_ids as string[] | null) ?? [];
-
-    // Fallback: if the query_cache entry was GC'd (7-day TTL) or never written,
-    // derive the paper set from the evidence of the Opus gaps. Coverage is
-    // only the cited papers, not the full corpus, but it's still a fair-ish
-    // sample for the A/B — better than returning nothing.
-    if (paperIds.length === 0) {
-      const seen = new Set<string>();
-      for (const g of opusGaps) {
-        for (const e of g.evidence) {
-          if (e.paper_id) seen.add(e.paper_id);
+    const rowPaperIds = (analysis.paper_ids as string[] | null) ?? [];
+    if (rowPaperIds.length > 0) {
+      paperIds = rowPaperIds;
+      paperSetSource = 'analysis_row';
+    } else {
+      // Tier 2: query_cache by topic-hash. Matches the hash shape in
+      // src/ingest/index.ts:queryHash.
+      const cacheKey = JSON.stringify({
+        topic: topic.toLowerCase().trim(),
+        field: field ?? null,
+        concept_id: filters.concept_id ?? null,
+        years: filters.years ?? null,
+        include_preprints: filters.include_preprints ?? null,
+        open_access_only: filters.open_access_only ?? null,
+      });
+      const queryHash = createHash('sha256').update(cacheKey).digest('hex');
+      const { data: cacheRow } = await sb
+        .from('query_cache')
+        .select('paper_ids')
+        .eq('query_hash', queryHash)
+        .maybeSingle();
+      const cached = (cacheRow?.paper_ids as string[] | null) ?? [];
+      if (cached.length > 0) {
+        paperIds = cached;
+        paperSetSource = 'query_cache';
+      } else {
+        // Tier 3: cited-evidence-only. Logged + surfaced as `paper_set_source`
+        // so the UI can render a "biased toward Opus" disclaimer.
+        const seen = new Set<string>();
+        for (const g of opusGaps) {
+          for (const e of g.evidence) {
+            if (e.paper_id) seen.add(e.paper_id);
+          }
         }
+        paperIds = Array.from(seen);
+        paperSetSource = 'cited_evidence';
+        logger.warn('compare_using_cited_evidence_fallback', {
+          reqId: req.id, analysisId: analysis_id, paperCount: paperIds.length,
+        });
       }
-      paperIds = Array.from(seen);
     }
 
     if (paperIds.length === 0) {
@@ -248,7 +268,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const sectionsById = new Map(sections.map((s) => [s.section_id, s]));
         const candidates = await reducePhase(clusters, sectionsById, adapter, topic, structuredFrame, haikuLLM);
         const grounded = await critiquePhase(candidates, adapter, haikuLLM);
-        const ranked = rankGaps(grounded, { topN: 10 });
+        const ranked = await rankGaps(grounded, { topN: 10 });
         haikuGaps = ranked.map((c, i) => candidateToCompareGap(c, i + 1));
       }
     } catch (e) {
@@ -275,6 +295,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       analysis_id,
       topic,
       field,
+      // Tells the UI whether both columns ran against the same corpus. Anything
+      // other than 'analysis_row' should render a disclaimer — particularly
+      // 'cited_evidence', which biases Haiku's input toward what Opus chose.
+      paper_set_source: paperSetSource,
+      paper_count: paperIds.length,
       opus: {
         model: env.ANTHROPIC_OPUS_MODEL,
         gaps: opusGaps,

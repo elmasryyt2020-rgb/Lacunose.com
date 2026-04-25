@@ -65,6 +65,53 @@ export type PollAnalysisResponse = {
   gaps: GapItem[];
 };
 
+// ---------------------------------------------------------------------------
+// SSE event payloads emitted by GET /api/beta/compare-stream/:id
+// ---------------------------------------------------------------------------
+
+export type CompareStreamMeta = {
+  analysis_id: string;
+  model: string;
+  paper_set_source: 'analysis_row' | 'cited_evidence' | 'pending';
+  paper_count: number;
+  sections: number;
+};
+
+export type CompareStreamPhase = {
+  phase: 'map' | 'map_done' | 'cluster' | 'cluster_done' | 'reduce_critique';
+  signals?: number;
+  clusters?: number;
+  startedAt?: number;
+  t?: number;
+};
+
+export type CompareStreamGap = GapItem & {
+  cluster_index?: number;
+  emitted_index?: number;
+  t?: number;
+};
+
+export type CompareStreamDone = {
+  count: number;
+  cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+  cached_input_tokens: number;
+  calls: number;
+  model: string;
+  total_ms: number;
+  gaps: GapItem[];
+  // Surfaced so the UI can explain a 0-gaps Haiku column ("3 produced, 3
+  // dropped in critique") instead of showing the bare "No gaps produced."
+  candidates_produced?: number;
+  candidates_dropped_in_critique?: number;
+};
+
+export type CompareStreamError = {
+  error: string;
+  message?: string;
+};
+
 export type CompareResponse = {
   analysis_id: string;
   topic: string;

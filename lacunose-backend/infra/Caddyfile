@@ -72,28 +72,9 @@ fn.lacunose.com {
     }
 }
 
-# Waitlist website (Next.js SSR via PM2 on :3000)
+# NOTE: The live Caddyfile is at /root/supabase/docker/Caddyfile on the VPS
+# (mounted into the supabase-caddy container). This file is not deployed.
+# Waitlist website (Next.js SSR Docker container)
 lacunose.com, www.lacunose.com {
-    encode zstd gzip
-
-    reverse_proxy host.docker.internal:3000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
-
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Content-Type-Options nosniff
-        Referrer-Policy strict-origin-when-cross-origin
-    }
-
-    log {
-        output file /data/log/web.log {
-            roll_size 10mb
-            roll_keep 10
-        }
-        format json
-    }
+    reverse_proxy lacunose-web:3000
 }

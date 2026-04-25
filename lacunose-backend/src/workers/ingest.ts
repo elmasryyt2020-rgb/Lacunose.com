@@ -69,6 +69,18 @@ const worker = new Worker<IngestJob>(
       const paperIds = result.papers.map((p) => p.id);
       logger.info('ingested', { analysis_id, count: paperIds.length, corpusLimit });
 
+      // Persist the corpus set on the analysis row itself so /v1/compare can
+      // re-run the pipeline against the same papers later without depending on
+      // the 7-day query_cache TTL. Best-effort; a write failure here is not
+      // fatal (compare will fall back to query_cache, then to cited papers).
+      const { error: paperIdsErr } = await sb
+        .from('gap_analyses')
+        .update({ paper_ids: paperIds })
+        .eq('id', analysis_id);
+      if (paperIdsErr) {
+        logger.warn('paper_ids_write_failed', { analysis_id, err: paperIdsErr.message });
+      }
+
       if (paperIds.length < 5) {
         await sb
           .from('gap_analyses')

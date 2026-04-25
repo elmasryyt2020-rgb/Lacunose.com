@@ -109,9 +109,18 @@ async function chat(opts: ChatOptions): Promise<ChatResponse> {
 async function chatJson<T>(opts: ChatOptions & { schema: z.ZodType<T> }): Promise<T> {
   const { schema, ...rest } = opts;
   const res = await chat(rest);
+  // Haiku 4.5 routinely wraps JSON in ```json ... ``` markdown fences despite
+  // the no-fences instruction in the system prompt. Under LLM_PROVIDER=anthropic
+  // (Haiku on MAP+CRITIQUE), this caused 100% of MAP responses to fail JSON.parse,
+  // short-circuiting the pipeline to "insufficient-signal" with 0 final gaps.
+  // The fence-stripping mirrors what scopedLLM.ts already does for the SSE path.
+  const stripped = res.content
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim();
   let parsed: unknown;
   try {
-    parsed = JSON.parse(res.content);
+    parsed = JSON.parse(stripped);
   } catch (e) {
     throw new Error(
       `llm.chatJson: response was not valid JSON (model=${res.model}): ${(e as Error).message}. ` +
