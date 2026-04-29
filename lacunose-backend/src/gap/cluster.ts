@@ -4,11 +4,11 @@
  * Strategy:
  *   1. Embed each signal's `phrase` via the shared hash-embed helper.
  *   2. Run HDBSCAN (`hdbscan-ts`) with `minClusterSize: 2, minSamples: 1`.
- *   3. If HDBSCAN returns fewer than 4 clusters OR every point is noise,
- *      fall back to bucketing by signal `kind` (future-work / limitation /
- *      contradiction-cue / methodology-hint).
- *   4. Always emit 4-8 clusters. Noise / singletons are folded into a single
- *      "misc" cluster when that keeps us in [4, 8].
+ *   3. If HDBSCAN returns fewer than MIN_CLUSTERS clusters OR every point is
+ *      noise, fall back to bucketing by signal `kind` (future-work /
+ *      limitation / contradiction-cue / methodology-hint).
+ *   4. Always emit MIN_CLUSTERS-MAX_CLUSTERS clusters. Noise / singletons are
+ *      folded into a single "misc" cluster when that keeps us in range.
  *
  * HDBSCAN labels: integer cluster IDs (0..k-1), or -1 for noise.
  */
@@ -18,8 +18,12 @@ import { embedShortTexts } from '../enrich/cohereEmbed.js';
 
 const logger = log.child('gap:cluster');
 
-const MIN_CLUSTERS = 4;
-const MAX_CLUSTERS = 8;
+// Bumped 4→6 / 8→10 (2026-04) to feed the reduce phase enough clusters that
+// 8-12 final gaps is reliable. Each cluster yields exactly 3 candidates after
+// the prompt change, so 6-10 clusters → 18-30 raw candidates → ~10-12 surviving
+// rank+dedupe.
+const MIN_CLUSTERS = 6;
+const MAX_CLUSTERS = 10;
 
 // hdbscan-ts typings are loose across versions — import dynamically and
 // probe for the expected shape at runtime. reason: single third-party dep

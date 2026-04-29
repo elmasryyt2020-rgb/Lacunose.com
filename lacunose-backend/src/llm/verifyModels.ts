@@ -84,9 +84,14 @@ export async function verifyModelsOnBoot(): Promise<void> {
   if (provider === 'deepseek') {
     const ids = await fetchDeepseekModels();
     if (!ids) return;
-    for (const id of ['deepseek-reasoner', 'deepseek-chat']) {
+    // Must stay in sync with MODEL_MATRIX.deepseek in router.ts.
+    for (const id of ['deepseek-v4-pro', 'deepseek-v4-flash']) {
       if (!ids.includes(id)) {
-        logger.warn('configured_model_not_found', { provider, model: id });
+        logger.warn('configured_model_not_found', {
+          provider,
+          model: id,
+          availableSample: ids.slice(0, 10),
+        });
       } else {
         logger.info('model_ok', { provider, model: id });
       }

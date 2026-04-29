@@ -3,7 +3,13 @@ import { supabase } from '../supabase';
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'https://fn.lacunose.com';
 
 export async function fetchApi(path: string, options: RequestInit = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    // If we can't get a session, sign out so the user isn't stuck.
+    await supabase.auth.signOut();
+    throw new Error('Your session has expired. Please sign in again.');
+  }
+
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> | undefined),
     'Content-Type': 'application/json',
@@ -17,6 +23,11 @@ export async function fetchApi(path: string, options: RequestInit = {}) {
     ...options,
     headers,
   });
+
+  if (res.status === 401) {
+    await supabase.auth.signOut();
+    throw new Error('Your session has expired. Please sign in again.');
+  }
 
   if (!res.ok) {
     throw new Error(`API error: ${res.status}`);

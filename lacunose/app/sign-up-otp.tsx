@@ -52,8 +52,17 @@ export default function ScreenOTP() {
         router.replace('/(tabs)/home');
         return;
       }
-      const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
-      if (error) throw error;
+      if (email.trim().toLowerCase() === 'apple@lacunose.com' && token === '123456') {
+        // App Store / Play Store Reviewer Bypass
+        const { error } = await supabase.auth.signInWithPassword({
+          email: 'apple@lacunose.com',
+          password: 'AppleReviewer2026!'
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+        if (error) throw error;
+      }
 
       // Attach the sign-up metadata if we carried any fields from the previous screen.
       // Best-effort — a failure here shouldn't block the user from entering the app.

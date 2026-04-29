@@ -65,7 +65,7 @@
       [
         "@sentry/react-native/expo",
         {
-          "organization": "lacunose",
+          "organization": "suturednotes",
           "project": "lacunose-mobile"
         }
       ]

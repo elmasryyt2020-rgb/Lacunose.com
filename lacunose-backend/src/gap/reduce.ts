@@ -10,6 +10,7 @@
  * `sectionsById.get(evidence.section_id)`. A candidate is dropped entirely
  * if ANY piece of its evidence fails verification.
  */
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { isVerbatimWithEllipsis } from './verbatim.js';
 import type {
@@ -25,6 +26,9 @@ import { llm, parallelMap } from '../llm/index.js';
 import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { reduceSystemPrompt, reduceUserPrompt } from './prompts/reduce.js';
+
+const REDUCE_PROMPT_VERSION = 'v3-2026-04-deepseek';
+const REDUCE_CACHE_TTL_SEC = 60 * 60 * 24 * 70; // 70 days
 
 // Same pattern as map.ts — accept either the global llm or a ScopedLLM.
 type PhaseLLM = Pick<typeof llm, 'chatJson'> | ScopedLLM;
@@ -57,7 +61,10 @@ const CandidateSchema = z.object({
   evidence: z.array(EvidenceSchema).min(1).max(12),
 });
 
-const CandidatesSchema = z.array(CandidateSchema).max(8);
+// Prompt asks for exactly 3 per cluster; tolerate 2-5 so a slight drift in
+// either direction doesn't void the whole cluster. Rank+dedupe will trim
+// downstream.
+const CandidatesSchema = z.array(CandidateSchema).min(1).max(5);
 
 /**
  * Run the REDUCE phase over every cluster in parallel (concurrency 6).
@@ -98,6 +105,24 @@ export async function reducePhase(
         return [];
       }
       const user = reduceUserPrompt({ topic, frame: structuredFrame, cluster, sectionsById });
+      // Cluster signature: sorted (paper_id, section_id) pairs — stable across
+      // reruns of the same input. Combined with prompt version + topic + frame,
+      // this gives a deterministic cache key for an identical reduce call.
+      const clusterSig = cluster
+        .map((s) => `${s.paper_id}:${s.section_id}:${s.kind}:${s.phrase}`)
+        .sort()
+        .join('|');
+      const cacheKey = `gap:reduce:${REDUCE_PROMPT_VERSION}:${
+        createHash('sha256')
+          .update(field.id)
+          .update('|')
+          .update(topic)
+          .update('|')
+          .update(JSON.stringify(structuredFrame ?? {}))
+          .update('|')
+          .update(clusterSig)
+          .digest('hex')
+      }`;
 
       let raw: z.infer<typeof CandidatesSchema>;
       try {
@@ -107,10 +132,11 @@ export async function reducePhase(
             { role: 'system', content: system, cache: true },
             { role: 'user', content: user },
           ],
-          temperature: 0.3,
+          temperature: 0,
           maxTokens: 4_000,
           jsonSchema: { type: 'array' },
           schema: CandidatesSchema,
+          cache: { key: cacheKey, ttlSec: REDUCE_CACHE_TTL_SEC },
         });
       } catch (e) {
         logger.warn('reduce call failed', {

@@ -6,12 +6,16 @@
  * treated as "grounded: true" — we'd rather under-filter than throw away a
  * real gap because of a flaky LLM call.
  */
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { CandidateGap, FieldAdapter } from '@lacunose/types';
 import { llm, parallelMap } from '../llm/index.js';
 import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { critiqueSystemPrompt, critiqueUserPrompt } from './prompts/critique.js';
+
+const CRITIQUE_PROMPT_VERSION = 'v3-2026-04-deepseek';
+const CRITIQUE_CACHE_TTL_SEC = 60 * 60 * 24 * 70; // 70 days
 
 type PhaseLLM = Pick<typeof llm, 'chatJson'> | ScopedLLM;
 
@@ -44,6 +48,24 @@ export async function critiquePhase(
   const verdicts = await parallelMap(
     candidates,
     async (cand) => {
+      // Cache key: candidate's title + description + research_question +
+      // sorted evidence quotes. With temperature 0 and a fixed prompt the
+      // verdict is deterministic for these inputs.
+      const evidenceSig = cand.evidence
+        .map((e) => `${e.paper_id}:${e.quote}`)
+        .sort()
+        .join('|');
+      const cacheKey = `gap:critique:${CRITIQUE_PROMPT_VERSION}:${
+        createHash('sha256')
+          .update(cand.title)
+          .update('|')
+          .update(cand.description)
+          .update('|')
+          .update(cand.research_question)
+          .update('|')
+          .update(evidenceSig)
+          .digest('hex')
+      }`;
       try {
         const verdict = await llmInstance.chatJson({
           model: 'critique',
@@ -51,10 +73,11 @@ export async function critiquePhase(
             { role: 'system', content: system, cache: true },
             { role: 'user', content: critiqueUserPrompt(cand) },
           ],
-          temperature: 0.0,
+          temperature: 0,
           maxTokens: 400,
           jsonSchema: { type: 'object' },
           schema: VerdictSchema,
+          cache: { key: cacheKey, ttlSec: CRITIQUE_CACHE_TTL_SEC },
         });
         return verdict;
       } catch (e) {

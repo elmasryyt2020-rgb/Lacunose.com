@@ -13,9 +13,15 @@
  *
  * | Tier     | anthropic                  | anthropic-allopus | deepseek          | mock          |
  * |----------|----------------------------|-------------------|-------------------|---------------|
- * | synth    | claude-opus-4-7            | claude-opus-4-7   | deepseek-reasoner | mock-reasoner |
- * | map      | claude-haiku-4-5-20251001  | claude-opus-4-7   | deepseek-chat     | mock-chat     |
- * | critique | claude-haiku-4-5-20251001  | claude-opus-4-7   | deepseek-chat     | mock-chat     |
+ * | synth    | claude-opus-4-7            | claude-opus-4-7   | deepseek-v4-pro   | mock-reasoner |
+ * | map      | claude-haiku-4-5-20251001  | claude-opus-4-7   | deepseek-v4-flash | mock-chat     |
+ * | critique | claude-haiku-4-5-20251001  | claude-opus-4-7   | deepseek-v4-flash | mock-chat     |
+ *
+ * DeepSeek pricing (per 1M tokens, as of 2026-04):
+ *   v4-pro    — input $0.435 (miss) / $0.003625 (hit), output $0.87. Promo
+ *               75% discount until 2026-05-31. Thinking on by default.
+ *   v4-flash  — input $0.14  (miss) / $0.0028   (hit), output $0.28.
+ *   Both: 1M context, 384K max output, JSON output + tool calls supported.
  */
 import type { ChatOptions, ChatResponse, LLMProviderId, ModelTier } from '@lacunose/types';
 import { env } from '../lib/env.js';
@@ -41,11 +47,16 @@ const MODEL_MATRIX: Record<LLMProviderId, Record<ModelTier, string>> = {
     critique: OPUS,
   },
   'deepseek': {
-    // `deepseek-reasoner` doesn't accept response_format json_object; the
-    // deepseek provider auto-skips it for reasoner. See providers/deepseek.ts.
-    synth:    'deepseek-reasoner',
-    map:      'deepseek-chat',
-    critique: 'deepseek-chat',
+    // V4 models — both support response_format json_object, tool calls, and 1M
+    // context. Pro defaults to thinking-on; flash defaults to thinking-on but
+    // for our map/critique workload (substring extraction + boolean verdict)
+    // thinking buys nothing useful — we accept the slightly higher output token
+    // count rather than guess at a thinking-disable param the SDK may not
+    // expose. Flip to thinking-off via DeepSeek's `chat_template_kwargs` if
+    // costs require it later.
+    synth:    'deepseek-v4-pro',
+    map:      'deepseek-v4-flash',
+    critique: 'deepseek-v4-flash',
   },
   'mock': {
     synth:    'mock-reasoner',

@@ -3,7 +3,10 @@
     "allow": [
       "Bash(cp \"C:/Users/CA/.claude/plans/okay-perfect-basically-what-s-gentle-puddle.md\" \"F:/opus 4.7 hackathon/lacunose-demo/VIDEO_PLAN.md\")",
       "Read(//f/opus 4.7 hackathon/lacunose-demo/**)",
-      "Bash(git -C f:/lacunose.com log --oneline -25)"
+      "Bash(git -C f:/lacunose.com log --oneline -25)",
+      "Bash(xargs grep *)",
+      "Bash(mkdir -p __TRACKED_VAR__/.claude/skills)",
+      "Bash(cp '/mnt/c/Users/CA/Downloads/Hormozi skills/*.skill' __TRACKED_VAR__/.claude/skills/)"
     ]
   }
 }

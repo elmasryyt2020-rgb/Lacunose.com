@@ -15,6 +15,7 @@ import { CARD_COLORS } from '../../constants/theme';
 import { restorePurchases } from '../../lib/billing/revenuecat';
 import { fetchApi } from '../../lib/api/client';
 import { isMockMode } from '../../lib/mocks';
+import { usePostHog } from 'posthog-react-native';
 
 const ANALYTICS_OPT_OUT_KEY = 'lacunose:analytics-opt-out';
 
@@ -51,6 +52,7 @@ export default function ScreenMe() {
   const { session, user, signOut } = useAuth();
   const { data: entitlement } = useEntitlement();
   const { data: savedGaps, isLoading: loadingGaps } = useSavedGaps();
+  const posthog = usePostHog();
 
   // Display-ready name from user_metadata, falling back to email prefix.
   const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
@@ -158,6 +160,13 @@ export default function ScreenMe() {
   const toggleAnalyticsOptOut = async (value: boolean) => {
     setAnalyticsOptOut(value);
     await AsyncStorage.setItem(ANALYTICS_OPT_OUT_KEY, value ? '1' : '0');
+    if (posthog) {
+      if (value) {
+        posthog.optOut();
+      } else {
+        posthog.optIn();
+      }
+    }
   };
 
   return (

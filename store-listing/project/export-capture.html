@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Export</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #000; width: 390px; height: 540px; overflow: hidden; }
+#stage { width: 390px; height: 844px; position: relative; }
+#root { width: 390px; height: 844px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script type="text/babel">
+
+const T = {
+  bg: '#F1EEE8', surface: '#FFFFFF', ink: '#0E0E0C',
+  inkSoft: '#4A4742', muted: '#8A8680', hair: 'rgba(14,14,12,0.08)',
+  mint: '#D7E8D4', lavender: '#E2D9EE', butter: '#F5EBB8',
+  peach: '#F5D9C8', sky: '#CFE0EA', rose: '#ECD1D1', sage: '#C4D1B5',
+  display: "'Instrument Serif', Georgia, serif",
+  sans: "'Inter', sans-serif",
+};
+
+function Icon({ name, size = 20, color = T.ink, stroke = 1.7 }) {
+  const p = { fill: 'none', stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  const paths = {
+    arrow:    <path d="M5 12h14M13 6l6 6-6 6" {...p}/>,
+    check:    <path d="M5 13l4 4L19 7" {...p}/>,
+    chevR:    <path d="M9 5l7 7-7 7" {...p}/>,
+    bell:     <><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15L6 16z" {...p}/><path d="M10 20a2 2 0 004 0" {...p}/></>,
+    book:     <><path d="M5 4h10a3 3 0 013 3v13H8a3 3 0 01-3-3V4z" {...p}/><path d="M5 4v13a3 3 0 003 3" {...p}/></>,
+    search:   <><circle cx="10" cy="10" r="6" {...p}/><path d="M15 15l4 4" {...p}/></>,
+    home:     <path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1v-9z" {...p}/>,
+    person:   <><circle cx="12" cy="8" r="4" {...p}/><path d="M4 21c0-4 4-7 8-7s8 3 8 7" {...p}/></>,
+    sparkle:  <path d="M12 4l1.8 4.7L18 10l-4.2 1.3L12 16l-1.8-4.7L6 10l4.2-1.3L12 4z" {...p}/>,
+    gap:      <><path d="M4 12h5M15 12h5" {...p}/><circle cx="12" cy="12" r="3" {...p}/></>,
+    layers:   <><path d="M12 3l9 5-9 5-9-5 9-5z" {...p}/><path d="M3 13l9 5 9-5" {...p}/><path d="M3 17l9 5 9-5" {...p}/></>,
+    bolt:     <path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z" {...p}/>,
+    bookmark: <path d="M6 4h12v17l-6-4-6 4V4z" {...p}/>,
+    target:   <><circle cx="12" cy="12" r="8" {...p}/><circle cx="12" cy="12" r="4" {...p}/><circle cx="12" cy="12" r="1" {...p}/></>,
+    quote:    <path d="M8 12H5a1 1 0 01-1-1V8a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1zm0 0c0 2-1 4-3 5M19 12h-3a1 1 0 01-1-1V8a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1zm0 0c0 2-1 4-3 5" {...p}/>,
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0 }}>
+      {paths[name] || <circle cx="12" cy="12" r="8" {...p}/>}
+    </svg>
+  );
+}
+
+function StatusBar({ dark = false }) {
+  const c = dark ? '#F5F5F5' : T.ink;
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 54, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '0 26px 9px', zIndex: 50 }}>
+      <span style={{ fontFamily: T.sans, fontSize: 15, fontWeight: 600, color: c }}>9:41</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="4" width="3" height="8" rx="1" fill={c}/><rect x="4.7" y="2.5" width="3" height="9.5" rx="1" fill={c}/><rect x="9.4" y="1" width="3" height="11" rx="1" fill={c}/><rect x="14" y="0" width="3" height="12" rx="1" fill={c} opacity="0.3"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 10a1 1 0 100 2 1 1 0 000-2z" fill={c}/><path d="M4.5 7.5a5 5 0 017 0" stroke={c} strokeWidth="1.5" fill="none" strokeLinecap="round"/><path d="M1.5 4.5a9 9 0 0113 0" stroke={c} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.6"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke={c} strokeWidth="1.2" fill="none"/><rect x="22" y="4" width="2" height="4" rx="1" fill={c} opacity="0.4"/><rect x="2" y="2" width="16" height="8" rx="1.5" fill={c}/></svg>
+      </div>
+    </div>
+  );
+}
+
+function FloatingNav({ active }) {
+  const tabs = [
+    { key: 'home', icon: 'home' },
+    { key: 'library', icon: 'layers' },
+    { key: 'analyze', icon: 'sparkle' },
+    { key: 'me', icon: 'person' },
+  ];
+  return (
+    <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 50 }}>
+      <div style={{ display: 'flex', gap: 4, background: T.surface, border: `1px solid ${T.hair}`, borderRadius: 40, padding: 6, boxShadow: '0 10px 30px rgba(0,0,0,0.09)' }}>
+        {tabs.map(t => (
+          <div key={t.key} style={{ width: 52, height: 52, borderRadius: 26, background: t.key === active ? T.ink : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={t.icon} size={22} color={t.key === active ? T.bg : T.ink} stroke={1.7} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ScoreDial({ value = 7, label = 'Novelty', size = 40, color = T.ink }) {
+  const r = size / 2 - 4;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size/2} cy={size/2} r={r} stroke={T.hair} strokeWidth="3" fill="none" />
+        <circle cx={size/2} cy={size/2} r={r} stroke={color} strokeWidth="3" fill="none"
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - value/10)}
+          strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`} />
+        <text x="50%" y="54%" textAnchor="middle" dominantBaseline="middle"
+          fontFamily="Inter,sans-serif" fontWeight="600" fontSize="12" fill={T.ink}>{value}</text>
+      </svg>
+      <span style={{ fontFamily: T.sans, fontSize: 10, color: T.muted, letterSpacing: 0.6, textTransform: 'uppercase', fontWeight: 500 }}>{label}</span>
+    </div>
+  );
+}
+
+function CategoryPill({ kind, bg: bgOverride }) {
+  const map = {
+    'future-work':  { bg: T.sky,      label: 'Future work' },
+    'methodology':  { bg: T.mint,     label: 'Methodology' },
+    'coverage':     { bg: T.lavender, label: 'Coverage' },
+    'population':   { bg: T.butter,   label: 'Population' },
+    'geographic':   { bg: T.peach,    label: 'Geographic' },
+  };
+  const c = map[kind] || map['methodology'];
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, background: bgOverride || c.bg }}>
+      <div style={{ width: 5, height: 5, borderRadius: 3, background: T.ink, opacity: 0.6 }} />
+      <span style={{ fontFamily: T.sans, fontSize: 10, fontWeight: 500, color: T.ink }}>{c.label}</span>
+    </div>
+  );
+}
+
+/* SHOT 1 */
+function Shot1() {
+  return (
+    <div style={{ width: 390, height: 844, background: T.bg, position: 'relative', overflow: 'hidden' }}>
+      <StatusBar />
+      <div style={{ position: 'absolute', top: 80, right: -60, width: 280, height: 280, borderRadius: 140, background: T.butter, opacity: 0.45, filter: 'blur(60px)' }} />
+      <div style={{ position: 'absolute', top: 300, left: -80, width: 300, height: 300, borderRadius: 150, background: T.lavender, opacity: 0.35, filter: 'blur(60px)' }} />
+      <div style={{ position: 'absolute', bottom: 160, right: -40, width: 220, height: 220, borderRadius: 110, background: T.sky, opacity: 0.3, filter: 'blur(50px)' }} />
+      <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', padding: '80px 28px 32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 64 }}>
+          <img src="assets/logo.png" alt="" style={{ width: 38, height: 38, borderRadius: 10 }} />
+          <span style={{ fontFamily: T.display, fontSize: 22, color: T.ink, letterSpacing: '-0.5px' }}>lacunose</span>
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ fontFamily: T.sans, fontSize: 11, fontWeight: 600, color: T.muted, letterSpacing: '1.4px', textTransform: 'uppercase', marginBottom: 16 }}>AI Research Gap Finder</div>
+          <div style={{ fontFamily: T.display, fontSize: 52, lineHeight: '54px', letterSpacing: '-2px', color: T.ink, marginBottom: 24, textShadow: '0 0 0.4px rgba(14,14,12,0.2)' }}>
+            Explore your <em>next</em> research space.
+          </div>
+          <div style={{ fontFamily: T.sans, fontSize: 15, color: T.inkSoft, lineHeight: 1.65, marginBottom: 40 }}>
+            Lacunose reads <strong style={{ color: T.ink }}>1,500 abstracts</strong> and surfaces novel research gaps backed by verbatim evidence.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { icon: 'bolt', label: '45-second analysis', bg: T.butter },
+              { icon: 'layers', label: 'Scans 5 academic databases', bg: T.mint },
+              { icon: 'target', label: 'Novelty & feasibility scores', bg: T.lavender },
+            ].map(f => (
+              <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 12, background: T.surface, borderRadius: 18, padding: '12px 14px', border: `1px solid ${T.hair}` }}>
+                <div style={{ width: 36, height: 36, borderRadius: 12, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name={f.icon} size={16} color={T.ink} />
+                </div>
+                <span style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 500, color: T.ink }}>{f.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ background: T.ink, borderRadius: 28, padding: '18px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 32 }}>
+          <span style={{ fontFamily: T.sans, fontSize: 16, fontWeight: 600, color: T.bg }}>Find gaps — free</span>
+          <div style={{ width: 44, height: 44, borderRadius: 22, background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="arrow" size={18} color={T.ink} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* SHOT 2 */
+function Shot2() {
+  const frameRows = [
+    { key: 'P', label: 'Population',   color: T.lavender, val: 'Adolescents aged 10–17 with obesity' },
+    { key: 'I', label: 'Intervention', color: T.sky,      val: 'GLP-1 receptor agonists' },
+    { key: 'C', label: 'Comparator',   color: T.mint,     val: '' },
+    { key: 'O', label: 'Outcome',      color: T.butter,   val: 'Weight reduction, safety' },
+  ];
+  return (
+    <div style={{ width: 390, height: 844, background: T.bg, position: 'relative', overflow: 'hidden' }}>
+      <StatusBar />
+      <div style={{ position: 'absolute', top: 60, right: -40, width: 220, height: 220, borderRadius: 110, background: T.sky, opacity: 0.3, filter: 'blur(50px)' }} />
+      <div style={{ position: 'relative', zIndex: 1, padding: '80px 24px 0', height: '100%' }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: T.display, fontSize: 46, lineHeight: '48px', letterSpacing: '-1.8px', color: T.ink, textShadow: '0 0 0.4px rgba(14,14,12,0.2)' }}>
+            Any topic.<br /><em>Any field.</em>
+          </div>
+          <div style={{ fontFamily: T.sans, fontSize: 14, color: T.inkSoft, marginTop: 10, lineHeight: 1.5 }}>
+            Enter your research interest and we'll scan thousands of papers for you.
+          </div>
+        </div>
+        <div style={{ background: T.surface, borderRadius: 28, border: `1px solid ${T.hair}`, overflow: 'hidden', boxShadow: '0 16px 48px rgba(0,0,0,0.08)' }}>
+          <div style={{ padding: '18px 18px 14px', borderBottom: `1px solid ${T.hair}` }}>
+            <div style={{ fontFamily: T.sans, fontSize: 9, fontWeight: 600, color: T.muted, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 6 }}>Topic · Medicine</div>
+            <div style={{ fontFamily: T.sans, fontSize: 17, color: T.ink, lineHeight: 1.4 }}>GLP-1 agonists in pediatric obesity cohorts</div>
+          </div>
+          <div style={{ padding: '10px 14px' }}>
+            <div style={{ fontFamily: T.sans, fontSize: 9, fontWeight: 600, color: T.muted, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>Structured ontology</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {frameRows.map(r => (
+                <div key={r.key} style={{ background: T.bg, borderRadius: 14, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, background: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontFamily: T.display, fontSize: 16, color: T.ink }}>{r.key}</span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: T.sans, fontSize: 8, fontWeight: 600, color: T.muted, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{r.label}</div>
+                    <div style={{ fontFamily: T.sans, fontSize: 11, color: r.val ? T.ink : T.muted, marginTop: 1 }}>{r.val || 'Tap to add'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ padding: '10px 14px 14px' }}>
+            <div style={{ background: T.ink, borderRadius: 22, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 600, color: T.bg }}>Find gaps</div>
+                <div style={{ fontFamily: T.sans, fontSize: 10, color: T.bg, opacity: 0.55, marginTop: 1 }}>≈ 45 sec · 1,500 papers</div>
+              </div>
+              <div style={{ width: 36, height: 36, borderRadius: 18, background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="arrow" size={15} color={T.ink} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* SHOT 3 */
+function Shot3() {
+  const gaps = [
+    { rank: 1, color: T.lavender, cat: 'population',  nov: 9, feas: 7, title: 'Dosing safety in adolescents under 12', desc: 'No RCT evidence exists for pediatric GLP-1 dosing under age 12 across any cohort size.' },
+    { rank: 2, color: T.sky,      cat: 'future-work', nov: 8, feas: 6, title: 'Long-term cardiovascular outcomes beyond 2 years' },
+    { rank: 3, color: T.mint,     cat: 'methodology', nov: 7, feas: 8, title: 'Standardised HbA1c reporting across trials' },
+  ];
+  return (
+    <div style={{ width: 390, height: 844, background: T.bg, position: 'relative', overflow: 'hidden' }}>
+      <StatusBar />
+      <div style={{ position: 'absolute', top: 120, right: -50, width: 240, height: 240, borderRadius: 120, background: T.lavender, opacity: 0.35, filter: 'blur(55px)' }} />
+      <div style={{ position: 'absolute', bottom: 200, left: -60, width: 200, height: 200, borderRadius: 100, background: T.mint, opacity: 0.3, filter: 'blur(45px)' }} />
+      <div style={{ position: 'relative', zIndex: 1, height: '100%', padding: '80px 24px 100px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontFamily: T.sans, fontSize: 10, fontWeight: 600, color: T.muted, letterSpacing: '1.4px', textTransform: 'uppercase', marginBottom: 8 }}>Results · 8 gaps found</div>
+          <div style={{ fontFamily: T.display, fontSize: 42, lineHeight: '44px', letterSpacing: '-1.6px', color: T.ink, textShadow: '0 0 0.4px rgba(14,14,12,0.2)' }}>
+            Gaps ranked by <em>novelty.</em>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+          {gaps.map((g, idx) => (
+            <div key={idx} style={{ background: T.surface, borderRadius: 24, padding: '14px 16px', border: `1px solid ${T.hair}`, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', gap: 10, marginBottom: g.desc ? 10 : 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 13, background: g.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontFamily: T.display, fontSize: 18, color: T.ink }}>{String(g.rank).padStart(2, '0')}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <CategoryPill kind={g.cat} bg={g.color} />
+                  <div style={{ fontFamily: T.display, fontSize: 16, lineHeight: '20px', letterSpacing: '-0.3px', color: T.ink, marginTop: 5 }}>{g.title}</div>
+                </div>
+              </div>
+              {g.desc && <div style={{ fontFamily: T.sans, fontSize: 12, color: T.inkSoft, lineHeight: 1.55, marginBottom: 10, paddingLeft: 50 }}>{g.desc}</div>}
+              <div style={{ display: 'flex', gap: 16, paddingTop: 10, borderTop: `1px solid ${T.hair}` }}>
+                <ScoreDial value={g.nov} label="Novelty" size={38} color="#7BAFC8" />
+                <ScoreDial value={g.feas} label="Feasibility" size={38} color="#8DBF8A" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <FloatingNav active="analyze" />
+    </div>
+  );
+}
+
+/* SHOT 4 */
+function Shot4() {
+  return (
+    <div style={{ width: 390, height: 844, background: T.bg, position: 'relative', overflow: 'hidden' }}>
+      <StatusBar />
+      <div style={{ position: 'absolute', top: 80, left: -60, width: 260, height: 260, borderRadius: 130, background: T.peach, opacity: 0.4, filter: 'blur(55px)' }} />
+      <div style={{ position: 'absolute', bottom: 120, right: -40, width: 200, height: 200, borderRadius: 100, background: T.butter, opacity: 0.35, filter: 'blur(45px)' }} />
+      <div style={{ position: 'relative', zIndex: 1, height: '100%', padding: '80px 24px 100px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: T.sans, fontSize: 10, fontWeight: 600, color: T.muted, letterSpacing: '1.4px', textTransform: 'uppercase', marginBottom: 8 }}>Evidence</div>
+          <div style={{ fontFamily: T.display, fontSize: 42, lineHeight: '44px', letterSpacing: '-1.6px', color: T.ink, textShadow: '0 0 0.4px rgba(14,14,12,0.2)' }}>
+            Every gap backed by <em>real</em> evidence.
+          </div>
+          <div style={{ fontFamily: T.sans, fontSize: 14, color: T.inkSoft, marginTop: 10, lineHeight: 1.55 }}>
+            Verbatim quotes from source papers — not hallucinations.
+          </div>
+        </div>
+        <div style={{ background: T.surface, borderRadius: 26, border: `1px solid ${T.hair}`, overflow: 'hidden', boxShadow: '0 16px 48px rgba(0,0,0,0.07)' }}>
+          <div style={{ padding: '16px 16px 12px' }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 13, background: T.lavender, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontFamily: T.display, fontSize: 18, color: T.ink }}>01</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <CategoryPill kind="population" bg={T.lavender} />
+                <div style={{ fontFamily: T.display, fontSize: 16, lineHeight: '20px', letterSpacing: '-0.3px', color: T.ink, marginTop: 5 }}>Dosing safety in adolescents under 12</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <ScoreDial value={9} label="Novelty" size={38} color="#7BAFC8" />
+              <ScoreDial value={7} label="Feasibility" size={38} color="#8DBF8A" />
+            </div>
+          </div>
+          <div style={{ background: T.lavender, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <Icon name="quote" size={14} color={T.inkSoft} />
+              <span style={{ fontFamily: T.sans, fontSize: 9, fontWeight: 600, color: T.inkSoft, letterSpacing: '1.2px', textTransform: 'uppercase' }}>Supporting evidence · 3 papers</span>
+            </div>
+            {[
+              { quote: '"No trials to date have enrolled participants below the age of 12 in GLP-1 receptor agonist studies."', source: 'Pediatric Obesity · 2023', journal: 'Smith et al.' },
+              { quote: '"Significant underrepresentation of prepubertal cohorts remains a persistent gap in the literature."', source: 'Endocrinology Rev · 2024', journal: 'Liu & Patel' },
+            ].map((e, i) => (
+              <div key={i} style={{ marginBottom: i === 0 ? 10 : 0 }}>
+                <div style={{ fontFamily: T.display, fontSize: 13, lineHeight: '17px', color: T.ink, fontStyle: 'italic', marginBottom: 4 }}>{e.quote}</div>
+                <div style={{ fontFamily: T.sans, fontSize: 10, color: T.inkSoft }}>{e.journal} · {e.source}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <FloatingNav active="analyze" />
+    </div>
+  );
+}
+
+/* SHOT 5 */
+function Shot5() {
+  const items = [
+    { topic: 'GLP-1 agonists in pediatric obesity',      field: 'Medicine',   gaps: 8,  date: 'Apr 25', color: T.lavender },
+    { topic: 'CAR-T cell therapy remission predictors',  field: 'Medicine',   gaps: 12, date: 'Apr 18', color: T.sky },
+    { topic: 'Transformer attention mechanisms',          field: 'CS',         gaps: 9,  date: 'Mar 30', color: T.mint },
+    { topic: 'Social media and adolescent anxiety',      field: 'Psychology', gaps: 6,  date: 'Mar 14', color: T.butter },
+  ];
+  return (
+    <div style={{ width: 390, height: 844, background: T.bg, position: 'relative', overflow: 'hidden' }}>
+      <StatusBar />
+      <div style={{ position: 'absolute', top: 100, right: -60, width: 250, height: 250, borderRadius: 125, background: T.sky, opacity: 0.28, filter: 'blur(55px)' }} />
+      <div style={{ position: 'absolute', bottom: 180, left: -60, width: 220, height: 220, borderRadius: 110, background: T.butter, opacity: 0.3, filter: 'blur(50px)' }} />
+      <div style={{ position: 'relative', zIndex: 1, height: '100%', padding: '80px 24px 100px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: T.sans, fontSize: 10, fontWeight: 600, color: T.muted, letterSpacing: '1.4px', textTransform: 'uppercase', marginBottom: 8 }}>Library</div>
+          <div style={{ fontFamily: T.display, fontSize: 42, lineHeight: '44px', letterSpacing: '-1.6px', color: T.ink, textShadow: '0 0 0.4px rgba(14,14,12,0.2)' }}>
+            All your research, <em>organised.</em>
+          </div>
+          <div style={{ fontFamily: T.sans, fontSize: 14, color: T.inkSoft, marginTop: 10, lineHeight: 1.55 }}>
+            Every analysis saved, searchable, and ready to revisit.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {['All', 'Medicine', 'CS', 'Psychology'].map((f, i) => (
+            <div key={f} style={{ padding: '7px 14px', borderRadius: 999, background: i === 0 ? T.ink : T.surface, border: `1px solid ${i === 0 ? T.ink : T.hair}`, fontFamily: T.sans, fontSize: 12, color: i === 0 ? T.bg : T.ink, whiteSpace: 'nowrap', flexShrink: 0 }}>{f}</div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, flex: 1 }}>
+          {items.map((it, i) => (
+            <div key={i} style={{ background: T.surface, borderRadius: 22, padding: 14, border: `1px solid ${T.hair}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+              <div>
+                <div style={{ width: 36, height: 36, borderRadius: 11, background: it.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                  <Icon name="gap" size={15} color={T.ink} />
+                </div>
+                <div style={{ fontFamily: T.display, fontSize: 14, lineHeight: '17px', color: T.ink }}>{it.topic}</div>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontFamily: T.sans, fontSize: 9, fontWeight: 600, color: T.muted, letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: 2 }}>{it.field}</div>
+                <div style={{ fontFamily: T.sans, fontSize: 11, color: T.inkSoft }}>{it.gaps} gaps · {it.date}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <FloatingNav active="library" />
+    </div>
+  );
+}
+
+const SHOTS = [Shot1, Shot2, Shot3, Shot4, Shot5];
+window.__lacunoseSHOTS = SHOTS;
+window.__lacunoseRoot = null;
+
+function App({ idx }) {
+  const Shot = SHOTS[idx] || SHOTS[0];
+  return <Shot />;
+}
+
+const _root = ReactDOM.createRoot(document.getElementById('root'));
+window.__lacunoseRoot = _root;
+window.__renderShot = (idx) => _root.render(React.createElement(App, { idx }));
+window.__renderShot(parseInt(new URLSearchParams(window.location.search).get('s') || '0'));
+</script>
+</body>
+</html>

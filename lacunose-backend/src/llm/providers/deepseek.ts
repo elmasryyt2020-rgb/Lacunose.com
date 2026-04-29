@@ -145,15 +145,17 @@ export async function chat(
   };
   if (tools) body.tools = tools;
   // DeepSeek's `response_format: { type: 'json_object' }`:
-  //   • is NOT supported on `deepseek-reasoner` (returns 400),
-  //   • requires the output to be a JSON OBJECT (not a bare array).
-  // Our callers request `{type: 'array'}` for map/reduce outputs — we
-  // therefore skip response_format when either condition applies, and rely
-  // on the system-prompt instructions + zod validation on our side.
-  const isReasoner = /reasoner/i.test(concreteModel);
+  //   • V4 (flash + pro) supports it on both thinking and non-thinking modes.
+  //   • Legacy `deepseek-reasoner` does NOT accept it (400) — keep the guard
+  //     so historical re-routes / mocks pinning the legacy name still work.
+  //   • Requires the output to be a JSON OBJECT (not a bare array).
+  // Our callers request `{type: 'array'}` for map/reduce outputs — we skip
+  // response_format when either condition applies and rely on the
+  // system-prompt instructions + zod validation on our side.
+  const isLegacyReasoner = /^deepseek-reasoner$/i.test(concreteModel);
   const schemaIsArray =
     opts.jsonSchema && (opts.jsonSchema as { type?: string }).type === 'array';
-  if (opts.jsonSchema && !isReasoner && !schemaIsArray) {
+  if (opts.jsonSchema && !isLegacyReasoner && !schemaIsArray) {
     body.response_format = { type: 'json_object' };
   }
 

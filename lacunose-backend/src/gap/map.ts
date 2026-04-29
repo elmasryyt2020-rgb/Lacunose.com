@@ -9,6 +9,7 @@
  * Post-processing is strict: every returned signal's `quote` must be a
  * verbatim substring of the section it came from, else we drop it.
  */
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type {
   FieldAdapter,
@@ -21,6 +22,12 @@ import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { isVerbatimWithEllipsis } from './verbatim.js';
 import { mapSystemPrompt, mapUserPrompt } from './prompts/map.js';
+
+// Bumped when the prompt or schema changes — invalidates all cached map
+// responses. Bump on every meaningful prompt change in prompts/map.ts.
+const MAP_PROMPT_VERSION = 'v3-2026-04-deepseek';
+// 70 days — same input + temperature 0 = same output, so we can cache long.
+const MAP_CACHE_TTL_SEC = 60 * 60 * 24 * 70;
 
 // A tiny subset of the llm surface the gap phases actually use. The global
 // `llm` export and any `ScopedLLM` both satisfy this shape, so phases can be
@@ -35,7 +42,9 @@ const SignalSchema = z.object({
   phrase: z.string().min(1).max(280),
   quote: z.string().min(1).max(2_000),
 });
-const SignalsSchema = z.array(SignalSchema).max(6); // tolerate slight overshoot
+// Prompt asks for 0-4; tolerate one extra so a slight overshoot doesn't void
+// the whole section's signals.
+const SignalsSchema = z.array(SignalSchema).max(5);
 
 /**
  * Run the MAP phase over `sections`. Returns the union of all validated
@@ -70,6 +79,24 @@ export async function mapPhase(
       if (signal?.aborted) return [];
       const user = mapUserPrompt(section, topic, structuredFrame);
       const extracted: GapSignal[] = [];
+      // Cache key: deterministic hash of every input that affects the answer.
+      // With temperature 0 and the same prompt version, identical inputs MUST
+      // produce identical outputs — safe to reuse for 10 weeks. Includes
+      // section text (not just id) so a re-ingested section with different
+      // text gets a fresh entry.
+      const cacheKey = `gap:map:${MAP_PROMPT_VERSION}:${
+        createHash('sha256')
+          .update(field.id)
+          .update('|')
+          .update(topic)
+          .update('|')
+          .update(JSON.stringify(structuredFrame ?? {}))
+          .update('|')
+          .update(section.section_id)
+          .update('|')
+          .update(section.text)
+          .digest('hex')
+      }`;
       try {
         const raw = await llmInstance.chatJson({
           model: 'map',
@@ -77,10 +104,11 @@ export async function mapPhase(
             { role: 'system', content: system, cache: true },
             { role: 'user', content: user },
           ],
-          temperature: 0.2,
-          maxTokens: 800,
+          temperature: 0,
+          maxTokens: 1200,
           jsonSchema: { type: 'array' },
           schema: SignalsSchema,
+          cache: { key: cacheKey, ttlSec: MAP_CACHE_TTL_SEC },
           ...(signal ? { signal } : {}),
         });
 

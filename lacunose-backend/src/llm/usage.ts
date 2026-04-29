@@ -22,6 +22,14 @@ interface Rates {
 const RATES: Record<string, Rates> = {
   'claude-opus-4-7':              { input: 15.0, output: 75.0, cachedInput: 1.5 },
   'claude-haiku-4-5-20251001':    { input: 1.0,  output: 5.0,  cachedInput: 0.1 },
+  // DeepSeek V4 — current generation. Pro discount runs until 2026-05-31; the
+  // listed prices already reflect the 75% promo. After May 2026 these will
+  // need to revert to the post-promo list price (estimated 4× current).
+  'deepseek-v4-pro':              { input: 0.435, output: 0.87, cachedInput: 0.003625 },
+  'deepseek-v4-flash':            { input: 0.14,  output: 0.28, cachedInput: 0.0028 },
+  // Legacy aliases — DeepSeek still accepts these and routes them to v4-flash
+  // modes. Kept here so historical analyses with `deepseek-chat`/`-reasoner`
+  // in their cost_tokens.models still cost-account correctly.
   'deepseek-reasoner':            { input: 0.55, output: 2.19, cachedInput: 0.55 },
   'deepseek-chat':                { input: 0.27, output: 1.10, cachedInput: 0.27 },
   // mock tiers are free

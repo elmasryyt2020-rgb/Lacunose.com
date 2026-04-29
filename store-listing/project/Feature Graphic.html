@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lacunose Feature Graphic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  width: 1024px;
+  height: 500px;
+  overflow: hidden;
+  background: #F1EEE8;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ensure absolute size for rendering screenshot */
+#root {
+  width: 1024px;
+  height: 500px;
+  position: relative;
+}
+
+/* Animations are removed for screenshots */
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+
+const T = {
+  bg: '#F1EEE8', surface: '#FFFFFF', ink: '#0E0E0C',
+  inkSoft: '#4A4742', muted: '#8A8680', hair: 'rgba(14,14,12,0.08)',
+  mint: '#D7E8D4', lavender: '#E2D9EE', butter: '#F5EBB8',
+  peach: '#F5D9C8', sky: '#CFE0EA', rose: '#ECD1D1', sage: '#C4D1B5',
+  display: "'Instrument Serif', Georgia, serif",
+  sans: "'Inter', sans-serif",
+};
+
+function ScoreDial({ value = 7, label = 'Novelty', size = 48, color = T.ink }) {
+  const r = size / 2 - 4;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size/2} cy={size/2} r={r} stroke={T.hair} strokeWidth="4" fill="none" />
+        <circle cx={size/2} cy={size/2} r={r} stroke={color} strokeWidth="4" fill="none"
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - value/10)}
+          strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`} />
+        <text x="50%" y="54%" textAnchor="middle" dominantBaseline="middle"
+          fontFamily="Inter,sans-serif" fontWeight="700" fontSize="15" fill={T.ink}>{value}</text>
+      </svg>
+      <span style={{ fontFamily: T.sans, fontSize: 13, color: T.muted, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: 600 }}>{label}</span>
+    </div>
+  );
+}
+
+function CategoryPill({ kind, bg }) {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: bg }}>
+      <div style={{ width: 6, height: 6, borderRadius: 3, background: T.ink, opacity: 0.6 }} />
+      <span style={{ fontFamily: T.sans, fontSize: 12, fontWeight: 600, color: T.ink, textTransform: 'uppercase', letterSpacing: 0.5 }}>{kind}</span>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div style={{ width: 1024, height: 500, position: 'relative', overflow: 'hidden' }}>
+      
+      {/* Background Blobs */}
+      <div style={{ position: 'absolute', top: -100, right: 100, width: 400, height: 400, borderRadius: 200, background: T.butter, opacity: 0.5, filter: 'blur(80px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -150, right: -50, width: 500, height: 500, borderRadius: 250, background: T.lavender, opacity: 0.5, filter: 'blur(100px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 50, left: -100, width: 400, height: 400, borderRadius: 200, background: T.mint, opacity: 0.3, filter: 'blur(90px)', pointerEvents: 'none' }} />
+
+      {/* Left Content */}
+      <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 480, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: 64, zIndex: 10 }}>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
+          <img src="./assets/logo.png" alt="Lacunose" style={{ width: 48, height: 48, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
+          <span style={{ fontFamily: T.display, fontSize: 32, color: T.ink, letterSpacing: -0.5 }}>lacunose</span>
+        </div>
+
+        <div style={{ fontFamily: T.sans, fontSize: 14, fontWeight: 700, color: T.muted, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 20 }}>
+          AI Research Gap Finder
+        </div>
+
+        <div style={{ fontFamily: T.display, fontSize: 68, lineHeight: '66px', letterSpacing: '-2px', color: T.ink, textShadow: '0 0 1px rgba(14,14,12,0.1)', marginBottom: 24 }}>
+          Explore your <em>next</em><br/>research space.
+        </div>
+
+        <div style={{ fontFamily: T.sans, fontSize: 18, color: T.inkSoft, lineHeight: 1.6, maxWidth: 400 }}>
+          Read 1,500 abstracts in seconds and find novel gaps backed by real evidence.
+        </div>
+      </div>
+
+      {/* Right Content - Floating UI Cards */}
+      <div style={{ position: 'absolute', top: '50%', right: -40, transform: 'translateY(-50%)', width: 600, zIndex: 20 }}>
+        
+        {/* Main Gap Card */}
+        <div style={{ background: T.surface, borderRadius: 32, padding: '32px 36px', border: `1px solid ${T.hair}`, boxShadow: '0 24px 64px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)', transform: 'rotate(-2deg)', position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', gap: 20, marginBottom: 24 }}>
+            <div style={{ width: 64, height: 64, borderRadius: 20, background: T.lavender, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontFamily: T.display, fontSize: 32, color: T.ink }}>01</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: 12 }}><CategoryPill kind="Population" bg={T.lavender} /></div>
+              <div style={{ fontFamily: T.display, fontSize: 28, lineHeight: '32px', letterSpacing: -0.5, color: T.ink }}>Dosing safety and efficacy in adolescents under 12</div>
+            </div>
+          </div>
+          
+          <div style={{ fontFamily: T.sans, fontSize: 16, color: T.inkSoft, lineHeight: 1.6, marginBottom: 32, paddingLeft: 84 }}>
+            No robust RCT evidence exists for pediatric GLP-1 receptor agonist dosing guidelines under age 12 across any cohort size.
+          </div>
+          
+          <div style={{ display: 'flex', gap: 32, paddingTop: 24, borderTop: `1px solid ${T.hair}`, paddingLeft: 84 }}>
+            <ScoreDial value={9} label="Novelty" size={56} color="#7BAFC8" />
+            <ScoreDial value={7} label="Feasibility" size={56} color="#8DBF8A" />
+          </div>
+        </div>
+
+        {/* Secondary Gap Card (peeking out behind) */}
+        <div style={{ position: 'absolute', top: -80, right: 60, width: 500, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: '24px 28px', border: `1px solid ${T.hair}`, boxShadow: '0 12px 32px rgba(0,0,0,0.05)', transform: 'rotate(4deg)', zIndex: 1, opacity: 0.9 }}>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 16, background: T.sky, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontFamily: T.display, fontSize: 24, color: T.ink }}>02</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: 8 }}><CategoryPill kind="Future Work" bg={T.sky} /></div>
+              <div style={{ fontFamily: T.display, fontSize: 22, lineHeight: '26px', letterSpacing: -0.3, color: T.ink }}>Long-term cardiovascular outcomes beyond 2 years</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Third Gap Card (peeking out below) */}
+        <div style={{ position: 'absolute', bottom: -60, right: 100, width: 450, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', borderRadius: 24, padding: '20px 24px', border: `1px solid ${T.hair}`, boxShadow: '0 8px 24px rgba(0,0,0,0.04)', transform: 'rotate(-5deg)', zIndex: 1, opacity: 0.7 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 14, background: T.mint, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontFamily: T.display, fontSize: 20, color: T.ink }}>03</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: T.display, fontSize: 18, lineHeight: '22px', color: T.ink, marginTop: 8 }}>Standardised HbA1c reporting across trials</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
