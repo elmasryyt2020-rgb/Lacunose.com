@@ -14,7 +14,7 @@ import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { critiqueSystemPrompt, critiqueUserPrompt } from './prompts/critique.js';
 
-const CRITIQUE_PROMPT_VERSION = 'v3-2026-04-deepseek';
+const CRITIQUE_PROMPT_VERSION = 'v4-2026-04-v4-generous-analytical';
 const CRITIQUE_CACHE_TTL_SEC = 60 * 60 * 24 * 70; // 70 days
 
 type PhaseLLM = Pick<typeof llm, 'chatJson'> | ScopedLLM;
@@ -74,7 +74,7 @@ export async function critiquePhase(
             { role: 'user', content: critiqueUserPrompt(cand) },
           ],
           temperature: 0,
-          maxTokens: 400,
+          maxTokens: 1500,
           jsonSchema: { type: 'object' },
           schema: VerdictSchema,
           cache: { key: cacheKey, ttlSec: CRITIQUE_CACHE_TTL_SEC },
@@ -101,8 +101,8 @@ export async function critiquePhase(
       kept.push(c);
     } else {
       dropped += 1;
-      logger.debug('critique dropped candidate', {
-        title: c.title.slice(0, 60),
+      logger.info('critique dropped candidate', {
+        title: c.title.slice(0, 100),
         rationale: v?.rationale ?? '',
       });
     }

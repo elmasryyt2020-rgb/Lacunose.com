@@ -25,7 +25,7 @@ import { mapSystemPrompt, mapUserPrompt } from './prompts/map.js';
 
 // Bumped when the prompt or schema changes — invalidates all cached map
 // responses. Bump on every meaningful prompt change in prompts/map.ts.
-const MAP_PROMPT_VERSION = 'v3-2026-04-deepseek';
+const MAP_PROMPT_VERSION = 'v4-2026-04-aggressive-flash';
 // 70 days — same input + temperature 0 = same output, so we can cache long.
 const MAP_CACHE_TTL_SEC = 60 * 60 * 24 * 70;
 
@@ -42,9 +42,12 @@ const SignalSchema = z.object({
   phrase: z.string().min(1).max(280),
   quote: z.string().min(1).max(2_000),
 });
-// Prompt asks for 0-4; tolerate one extra so a slight overshoot doesn't void
+// Prompt asks for 0-8; tolerate one extra so a slight overshoot doesn't void
 // the whole section's signals.
-const SignalsSchema = z.array(SignalSchema).max(5);
+// Wrapped in an object so DeepSeek can use response_format: { type: 'json_object' }.
+const SignalsSchema = z.object({
+  signals: z.array(SignalSchema).max(9),
+});
 
 /**
  * Run the MAP phase over `sections`. Returns the union of all validated
@@ -105,14 +108,14 @@ export async function mapPhase(
             { role: 'user', content: user },
           ],
           temperature: 0,
-          maxTokens: 1200,
-          jsonSchema: { type: 'array' },
+          maxTokens: 6000,
+          jsonSchema: { type: 'object' },
           schema: SignalsSchema,
           cache: { key: cacheKey, ttlSec: MAP_CACHE_TTL_SEC },
           ...(signal ? { signal } : {}),
         });
 
-        for (const s of raw) {
+        for (const s of raw.signals) {
           // VERBATIM guardrail: the quote must appear in the section text.
           if (!isVerbatimWithEllipsis(s.quote, section.text)) {
             continue;

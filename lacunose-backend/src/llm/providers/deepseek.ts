@@ -185,7 +185,23 @@ export async function chat(
     throw new Error('deepseek chat returned no choices');
   }
 
-  const content = choice.message.content ?? '';
+  let content = choice.message.content ?? '';
+
+  // deepseek-v4-flash occasionally returns completely empty content despite
+  // a 200 OK. Retry up to 2 times when this happens.
+  let emptyRetries = 0;
+  while (!content.trim() && emptyRetries < 2) {
+    emptyRetries++;
+    clog.warn('empty content from deepseek, retrying', { model: concreteModel, attempt: emptyRetries });
+    await sleep(1000 * emptyRetries);
+    try {
+      raw = await doCall();
+      const c2 = raw.choices[0];
+      if (c2) content = c2.message.content ?? '';
+    } catch (e) {
+      clog.warn('empty-content retry failed', { error: (e as Error).message });
+    }
+  }
   const toolCalls: LLMToolCall[] = [];
   if (choice.message.tool_calls) {
     for (const tc of choice.message.tool_calls) {

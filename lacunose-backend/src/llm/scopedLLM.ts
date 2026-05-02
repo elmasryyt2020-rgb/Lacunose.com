@@ -107,28 +107,42 @@ export function createScopedLLM(spec: ModelOverrideSpec): ScopedLLM {
 
   async function chatJson<T>(opts: ChatOptions & { schema: z.ZodType<T> }): Promise<T> {
     const { schema, ...rest } = opts;
-    const res = await chat(rest);
-    // Haiku frequently wraps JSON in markdown fences (```json ... ```) despite
-    // the no-fences instruction in the system prompt. Strip them before parsing
-    // so the Haiku column of /v1/compare doesn't die on every other call.
-    const stripped = res.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(stripped);
-    } catch (e) {
-      throw new Error(
-        `scopedLLM.chatJson: response was not valid JSON (model=${res.model}): ${(e as Error).message}. ` +
-        `Raw content (first 200 chars): ${res.content.slice(0, 200)}`,
-      );
+    const MAX_RETRIES = 2;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const res = await chat(rest);
+      // Haiku frequently wraps JSON in markdown fences (```json ... ```) despite
+      // the no-fences instruction in the system prompt. Strip them before parsing
+      // so the Haiku column of /v1/compare doesn't die on every other call.
+      const stripped = res.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(stripped);
+      } catch (e) {
+        if (attempt < MAX_RETRIES) {
+          clog.warn('scopedLLM.chatJson JSON parse failed, retrying', { model: res.model, attempt: attempt + 1 });
+          await new Promise((r) => setTimeout(r, 500));
+          continue;
+        }
+        throw new Error(
+          `scopedLLM.chatJson: response was not valid JSON (model=${res.model}): ${(e as Error).message}. ` +
+          `Raw content (first 200 chars): ${res.content.slice(0, 200)}`,
+        );
+      }
+      const validated = schema.safeParse(parsed);
+      if (!validated.success) {
+        if (attempt < MAX_RETRIES) {
+          clog.warn('scopedLLM.chatJson schema validation failed, retrying', { model: res.model, attempt: attempt + 1 });
+          await new Promise((r) => setTimeout(r, 500));
+          continue;
+        }
+        throw new Error(
+          `scopedLLM.chatJson: JSON did not match schema (model=${res.model}): ` +
+          JSON.stringify(validated.error.flatten()),
+        );
+      }
+      return validated.data;
     }
-    const validated = schema.safeParse(parsed);
-    if (!validated.success) {
-      throw new Error(
-        `scopedLLM.chatJson: JSON did not match schema (model=${res.model}): ` +
-        JSON.stringify(validated.error.flatten()),
-      );
-    }
-    return validated.data;
+    throw new Error('scopedLLM.chatJson: exhausted retries');
   }
 
   return {

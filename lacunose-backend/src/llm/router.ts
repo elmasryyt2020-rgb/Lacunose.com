@@ -54,6 +54,9 @@ const MODEL_MATRIX: Record<LLMProviderId, Record<ModelTier, string>> = {
     // count rather than guess at a thinking-disable param the SDK may not
     // expose. Flip to thinking-off via DeepSeek's `chat_template_kwargs` if
     // costs require it later.
+    // NOTE: map uses flash with retry logic for empty-content failures.
+    // Pro is 3-5x slower and 3x more expensive but finds fewer signals per
+    // section. With json fixes + retry, flash is reliable enough.
     synth:    'deepseek-v4-pro',
     map:      'deepseek-v4-flash',
     critique: 'deepseek-v4-flash',

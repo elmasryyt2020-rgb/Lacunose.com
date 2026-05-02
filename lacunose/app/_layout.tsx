@@ -5,7 +5,7 @@ import { useFonts, InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ThemeProvider, useTheme } from '../constants/theme';
 import { AuthProvider } from '../providers/AuthProvider';
 import { QueryProvider } from '../providers/QueryProvider';
@@ -14,6 +14,7 @@ import { usePushRegistration } from '../hooks/usePushRegistration';
 import * as Sentry from '@sentry/react-native';
 import { PostHogProvider } from 'posthog-react-native';
 import { useSegments, useRouter } from 'expo-router';
+import { SplashView } from '../components/SplashView';
 
 // Only init Sentry when a real DSN is configured — an empty DSN makes the
 // SDK throw/warn on every startup. tracesSampleRate is dropped in dev to
@@ -119,19 +120,29 @@ export default Sentry.wrap(function RootLayout() {
     JetBrainsMono_400Regular,
   });
 
+  // Track whether the custom splash has finished its fade-out animation.
+  const [splashDone, setSplashDone] = useState(false);
+
   useEffect(() => {
     if (loaded) {
+      // Hide the native splash screen immediately once fonts are loaded.
+      // Our custom SplashView takes over from here with a branded animation.
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  const handleSplashFinished = useCallback(() => {
+    setSplashDone(true);
+  }, []);
 
+  // Render the app tree even while splash is showing so navigation/auth can
+  // initialise in the background; SplashView overlays with absolute positioning.
   return (
     <ThemeProvider>
-      <AppContent />
+      {loaded && <AppContent />}
+      {!splashDone && (
+        <SplashView isReady={loaded ?? false} onFinished={handleSplashFinished} />
+      )}
     </ThemeProvider>
   );
 });

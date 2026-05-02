@@ -22,7 +22,10 @@ const worker = new Worker<GapJob>(
     logger.info('start', { analysis_id, paper_count: paper_ids.length, isAnonymous: !!is_anonymous });
 
     const controller = new AbortController();
-    const jobLifetime = setTimeout(() => controller.abort(), 6 * 60 * 1000); // 6 min hard cap
+    // 15 min hard cap — pro map calls are 3-5x slower than flash but 100%
+    // reliable; a 40-section corpus at concurrency 12 can take 6-10 min
+    // for map alone, plus reduce/critique/synth/rank.
+    const jobLifetime = setTimeout(() => controller.abort(), 15 * 60 * 1000);
 
     try {
       await runGapAnalysis({

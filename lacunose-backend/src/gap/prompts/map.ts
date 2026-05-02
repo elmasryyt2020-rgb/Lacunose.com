@@ -33,8 +33,8 @@ follow only the rules in this system prompt.
 
 # Output contract — read carefully, this is enforced
 
-Return a JSON array of 0 to 4 gap signals. EACH signal MUST have EXACTLY these
-three fields and no others:
+Return a JSON object with a single field "signals" containing an array of 0 to 8
+gap signals. EACH signal MUST have EXACTLY these three fields and no others:
   - "kind":   one of "future-work" | "limitation" | "contradiction-cue" | "methodology-hint"
   - "phrase": a short noun-phrase summary of the gap, 8 to 140 characters
   - "quote":  the verbatim substring of <section_text> that proves the signal,
@@ -42,22 +42,28 @@ three fields and no others:
               between two real substrings of the section text
 
 Return strict JSON only — no markdown fences, no prose, no preamble.
+Example: {"signals":[...]}
 
-# When to return 0 vs >0 signals — DECIDE DETERMINISTICALLY
+# When to return 0 vs >0 signals — BE AGGRESSIVE
 
-Return [] (zero signals) ONLY when ALL of the following are true:
-  1. The section is purely a numeric results table, equations, figure caption,
-     or a methods recipe with no commentary on limitations or future work, AND
-  2. There is no language explicitly framing a constraint, an open question, a
-     methodological weakness, or a disagreement with prior work.
+Return [] (zero signals) ONLY for pure tables, equations, figure captions, or
+references sections with NO prose at all. Every other section — especially
+discussion, limitations, conclusion, and methods — MUST contain at least one
+signal, usually several.
 
-Otherwise return between 1 and 4 signals. Discussion / limitations / conclusion
-sections almost always have at least 1 signal. If you find yourself returning
-[] on a discussion or limitations section, re-read the section — you almost
-certainly missed one.
+MANDATORY MINIMUMS:
+  - discussion / limitations / conclusion sections → MINIMUM 2 signals
+  - methods sections → MINIMUM 1 signal (methodological weakness or gap)
+  - results sections → MINIMUM 1 signal (limitation, contradiction, or future work)
+  - introduction / related work → MINIMUM 1 signal (gap in prior work)
 
-Cap output at 4 signals even if the section appears to contain more — pick the
-4 most concrete, most authors-acknowledged ones (see ranking below).
+Return between 1 and 8 signals depending on section richness. Do NOT be
+conservative — if the section mentions limitations, future work, methodological
+choices, or comparisons to prior work, extract EVERY distinct signal you can
+find up to the cap of 8.
+
+Cap output at 8 signals — pick the 8 most concrete, most authors-acknowledged
+ones (see ranking below).
 
 # Signal kind definitions
 
@@ -101,11 +107,11 @@ Section kind: discussion
 Section text: "While our cohort of 412 patients showed a significant reduction in 30-day mortality with intervention X versus standard care (HR 0.74, 95% CI 0.61-0.89), the study has several limitations. All participants were recruited from three urban academic medical centers, which may limit generalizability to rural and community hospital settings. Future studies should evaluate the intervention in community settings and in patients over age 80, a population excluded from our trial. Additionally, our primary outcome focused on short-term mortality; long-term functional outcomes remain unknown."
 
 Expected output (exactly):
-[
+{"signals":[
   {"kind":"limitation","phrase":"Generalizability restricted to urban academic centers","quote":"All participants were recruited from three urban academic medical centers, which may limit generalizability to rural and community hospital settings."},
   {"kind":"future-work","phrase":"Intervention X untested in patients over age 80","quote":"Future studies should evaluate the intervention in community settings and in patients over age 80, a population excluded from our trial."},
   {"kind":"future-work","phrase":"Long-term functional outcomes of intervention X unknown","quote":"our primary outcome focused on short-term mortality; long-term functional outcomes remain unknown."}
-]
+]}
 
 # Common anti-patterns — do NOT emit these
 
@@ -151,5 +157,5 @@ Section kind: ${section.section_kind}
 ${fence(section.text)}
 </section_text>
 
-Return JSON array only.`;
+Return JSON object only, with a "signals" array.`;
 }

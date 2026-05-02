@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native build artifacts (large, rebuilt on EAS)
+/android
+/ios
+
+# Kotlin cache
+.kotlin/
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# Local env
+.env
+.env*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Git
+.git
+
+# Example
+app-example
+
+# jks
+.jks

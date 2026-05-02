@@ -27,7 +27,7 @@ import type { ScopedLLM } from '../llm/scopedLLM.js';
 import { log } from '../lib/logger.js';
 import { reduceSystemPrompt, reduceUserPrompt } from './prompts/reduce.js';
 
-const REDUCE_PROMPT_VERSION = 'v3-2026-04-deepseek';
+const REDUCE_PROMPT_VERSION = 'v4-2026-04-phase1-single-paper-ok';
 const REDUCE_CACHE_TTL_SEC = 60 * 60 * 24 * 70; // 70 days
 
 // Same pattern as map.ts — accept either the global llm or a ScopedLLM.
@@ -52,19 +52,22 @@ const CandidateSchema = z.object({
   title: z.string().min(1).max(160),
   description: z.string().min(1).max(2_000),
   category: z.string().min(1).max(64),
-  novelty_score: z.number().min(1).max(10),
-  feasibility_score: z.number().min(1).max(10),
+  novelty_score: z.number().min(1).max(10).nullable().default(5),
+  feasibility_score: z.number().min(1).max(10).nullable().default(5),
   research_question: z.string().min(1).max(500),
   suggested_method: z.string().min(1).max(500),
-  suggested_n: z.number().int().positive().optional(),
-  suggested_duration_months: z.number().int().positive().optional(),
+  suggested_n: z.number().int().positive().optional().nullable(),
+  suggested_duration_months: z.number().int().positive().optional().nullable(),
   evidence: z.array(EvidenceSchema).min(1).max(12),
 });
 
 // Prompt asks for exactly 3 per cluster; tolerate 2-5 so a slight drift in
 // either direction doesn't void the whole cluster. Rank+dedupe will trim
 // downstream.
-const CandidatesSchema = z.array(CandidateSchema).min(1).max(5);
+// Wrapped in an object so DeepSeek can use response_format: { type: 'json_object' }.
+const CandidatesSchema = z.object({
+  candidates: z.array(CandidateSchema).min(1).max(5),
+});
 
 /**
  * Run the REDUCE phase over every cluster in parallel (concurrency 6).
@@ -93,17 +96,11 @@ export async function reducePhase(
     clusters,
     async (cluster, idx) => {
       if (cluster.length === 0) return [];
-      // Preflight: a candidate must cite >=2 distinct paper_ids. If the
-      // cluster itself only references one paper, every LLM output would be
-      // rejected downstream — skip the call entirely.
+      // NOTE: single-paper clusters are now ALLOWED. A limitation or future-
+      // work signal from one paper IS a valid gap if no one else is addressing
+      // it. The downstream verifyCandidate still enforces quote-verbatim and
+      // section existence, but paper-count is no longer a gate.
       const clusterDistinctPapers = new Set(cluster.map((s) => s.paper_id)).size;
-      if (clusterDistinctPapers < 2) {
-        logger.info('reduce skip single-paper cluster', {
-          clusterIdx: idx,
-          clusterSize: cluster.length,
-        });
-        return [];
-      }
       const user = reduceUserPrompt({ topic, frame: structuredFrame, cluster, sectionsById });
       // Cluster signature: sorted (paper_id, section_id) pairs — stable across
       // reruns of the same input. Combined with prompt version + topic + frame,
@@ -133,8 +130,8 @@ export async function reducePhase(
             { role: 'user', content: user },
           ],
           temperature: 0,
-          maxTokens: 4_000,
-          jsonSchema: { type: 'array' },
+          maxTokens: 8_000,
+          jsonSchema: { type: 'object' },
           schema: CandidatesSchema,
           cache: { key: cacheKey, ttlSec: REDUCE_CACHE_TTL_SEC },
         });
@@ -151,7 +148,7 @@ export async function reducePhase(
       const clusterSectionIds = new Set(cluster.map((s) => s.section_id));
 
       const verified: CandidateGap[] = [];
-      for (const cand of raw) {
+      for (const cand of raw.candidates) {
         if (!verifyCandidate(cand, clusterPaperIds, clusterSectionIds, sectionsById)) {
           continue;
         }
@@ -194,7 +191,7 @@ export async function reducePhase(
       }
       return verified;
     },
-    { concurrency: 6 },
+    { concurrency: 12 },
   );
 
   const flat = perCluster.flat();

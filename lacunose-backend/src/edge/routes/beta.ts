@@ -85,6 +85,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     const ip = clientIp(req);
 
     const sb = supabaseAdmin();
+    
+    // Add a generous rate limit to the beta test flow to prevent abuse
+    // (since it bypasses the strict 2-per-day anonymous limit).
+    // 30 analyses per IP per 24h.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: ipCount } = await sb
+      .from('gap_analyses')
+      .select('id', { count: 'exact', head: true })
+      .eq('anonymous_ip', ip)
+      .gte('created_at', since);
+    if ((ipCount ?? 0) >= 30) {
+      reply.code(429).send({ error: 'beta_rate_limited', retry_after_sec: 86400 });
+      return;
+    }
+
     const claimToken = randomClaimToken();
     const claimExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 

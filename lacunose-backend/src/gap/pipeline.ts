@@ -90,7 +90,7 @@ async function runGapAnalysisImpl(opts: RunGapOpts): Promise<void> {
     // 2. retrieve — 40 sections (bumped from 30) gives the map phase more
     // surface area, which keeps the post-cluster reduce candidate count above
     // the 8-12 final-gap floor even when critique drops 30-50% of candidates.
-    const sections = await hybridRetrieve(analysisId, topic, paperIds, 40);
+    const sections = await hybridRetrieve(analysisId, topic, paperIds, 80);
     logger.info('phase: retrieve', {
       analysisId,
       inputCount: paperIds.length,

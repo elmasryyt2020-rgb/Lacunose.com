@@ -29,18 +29,19 @@ signals taken from multiple papers in the ${field.label} field.
 
 # Output contract — strict, mechanical
 
-Return a JSON array of EXACTLY 3 gap objects. Not 2. Not 4. Three. If the
-cluster does not seem to support 3 distinct gaps, broaden the level of
-abstraction on one or split a too-broad gap into two adjacent ones — but
-ALWAYS return 3. The downstream pipeline trims, dedupes, and ranks; your job
-is to give it a consistent count to work with.
+Return a JSON object with a single field "candidates" containing an array of
+EXACTLY 3 gap objects. Not 2. Not 4. Three. If the cluster does not seem to
+support 3 distinct gaps, broaden the level of abstraction on one or split a
+too-broad gap into two adjacent ones — but ALWAYS return 3. The downstream
+pipeline trims, dedupes, and ranks; your job is to give it a consistent count
+to work with.
 
 Each gap object MUST have ALL of these fields and ONLY these fields:
 - title:                     concise noun phrase, max 90 chars, no trailing period
 - description:               2-3 sentences explaining the gap and why it matters
 - category:                  one of [${allCats}] — strongly prefer one of [${categories}] when applicable
-- novelty_score:             integer 1-10 (10 = clear white space, 1 = well-trodden)
-- feasibility_score:         integer 1-10 (10 = small-N chart review or secondary analysis; 1 = decade-long multi-site RCT)
+- novelty_score:             integer 1-10, NEVER null (10 = clear white space, 1 = well-trodden)
+- feasibility_score:         integer 1-10, NEVER null (10 = small-N chart review or secondary analysis; 1 = decade-long multi-site RCT)
 - research_question:         one concrete question a student could investigate in 12-18 months
 - suggested_method:          a study design, using these terms when applicable: ${vocab}
 - suggested_n:               OPTIONAL integer — sample size if relevant
@@ -152,6 +153,7 @@ Cluster: ${cluster.length} signals across ${distinctPapers.size} distinct papers
 ${fence(JSON.stringify(items, null, 2))}
 </signals>
 
-Return a JSON array of EXACTLY 3 candidate gap objects, in the schema given in
-the system prompt. No prose, no markdown fences.`;
+Return a JSON object with a "candidates" array containing EXACTLY 3 candidate
+gap objects, in the schema given in the system prompt. No prose, no markdown
+fences.`;
 }
