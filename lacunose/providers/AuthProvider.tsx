@@ -26,6 +26,8 @@ const hasRealGoogleConfig = Boolean(
 GoogleSignin.configure({
   webClientId: WEB_CLIENT_ID || 'mock_client_id',
   iosClientId: IOS_CLIENT_ID,
+  // Required on Android — must match the registered Android OAuth client
+  // whose SHA-1 fingerprint is registered in Google Cloud Console.
   ...(ANDROID_CLIENT_ID ? { androidClientId: ANDROID_CLIENT_ID } : {}),
 });
 

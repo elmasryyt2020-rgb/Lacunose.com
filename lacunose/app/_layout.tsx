@@ -140,8 +140,8 @@ export default Sentry.wrap(function RootLayout() {
   return (
     <ThemeProvider>
       {loaded && <AppContent />}
-      {!splashDone && (
-        <SplashView isReady={loaded ?? false} onFinished={handleSplashFinished} />
+      {loaded && !splashDone && (
+        <SplashView isReady={true} onFinished={handleSplashFinished} />
       )}
     </ThemeProvider>
   );

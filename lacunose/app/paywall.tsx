@@ -154,14 +154,14 @@ export default function ScreenPaywall() {
 
         {/* App Store / Play review hard-requires these disclosures + links. */}
         <Text style={{ fontFamily: RGF.sans, fontSize: 11, color: RGF.muted, textAlign: 'center', lineHeight: 16, marginTop: 18, paddingHorizontal: 10 }}>
-          Subscription auto-renews at the price shown above. You can cancel anytime in your device's subscription settings.
+          A "Pro" subscription is available for $20 per month. The subscription auto-renews at this price unless canceled. You can cancel anytime in your device's subscription settings.
         </Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 12 }}>
           <TouchableOpacity onPress={() => router.push('/terms')}>
-            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink, textDecorationLine: 'underline' }}>Terms</Text>
+            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink, textDecorationLine: 'underline' }}>Terms of Use (EULA)</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/privacy')}>
-            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink, textDecorationLine: 'underline' }}>Privacy</Text>
+            <Text style={{ fontFamily: RGF.sansMedium, fontSize: 12, color: RGF.ink, textDecorationLine: 'underline' }}>Privacy Policy</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

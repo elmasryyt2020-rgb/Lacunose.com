@@ -11,3 +11,14 @@ lacunose-*.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Added for EAS build
+node_modules/
+android/
+ios/
+.expo/
+
+# Local VPS backups contain production secrets and large Docker/database archives.
+backups/*
+!backups/RESTORE.md
+!backups/*.ps1

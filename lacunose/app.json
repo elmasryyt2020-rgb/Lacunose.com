@@ -80,6 +80,12 @@
         "projectId": "19ec9c3d-5b87-4097-8220-7dbaece490d5"
       }
     },
-    "owner": "seif.ahmed"
+    "owner": "seif.ahmed",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/19ec9c3d-5b87-4097-8220-7dbaece490d5"
+    }
   }
 }
